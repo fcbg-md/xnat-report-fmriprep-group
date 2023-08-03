@@ -1,3 +1,24 @@
 {
-    "jupyter.kernels.filter": []
+    "jupyter.kernels.filter": [
+        {
+            "path": "/home/axel/miniconda3/bin/python",
+            "type": "pythonEnvironment"
+        },
+        {
+            "path": "/home/axel/.local/share/jupyter/kernels/mjupyter/kernel.json",
+            "type": "jupyterKernelspec"
+        },
+        {
+            "path": "/home/axel/miniconda3/envs/mjupyter/bin/python",
+            "type": "pythonEnvironment"
+        },
+        {
+            "path": "/bin/python3",
+            "type": "pythonEnvironment"
+        },
+        {
+            "path": "/usr/bin/python3",
+            "type": "pythonEnvironment"
+        }
+    ]
 }

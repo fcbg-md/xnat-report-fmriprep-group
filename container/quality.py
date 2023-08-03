@@ -141,7 +141,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
     # Add 'All Files' option
     dropdown_buttons.append(dict(label='All group', method='update', 
                                 args=[{'visible': [True]*len(fig.data)}, 
-                                    {'title': '{signal} for All Files', 'showlegend': True}]))
+                                    {'title': f'{signal} for All Files', 'showlegend': True}]))
 
     fig.update_layout(updatemenus=[dict(active=len(dropdown_buttons)-1, buttons=dropdown_buttons)])
     fig.update_layout(
@@ -172,6 +172,97 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
     fig.write_html(os.path.join(output_dir, fig_name))
     \
 
+def generate_figure2(all_tables, repetition_times, signals, output_dir):
+    fs=0.015
+    fig = go.Figure()
+
+    # Create a list of subject names
+    subject_names = [os.path.basename(table).split('.')[0] for table in all_tables]
+
+    # Create a list of visibility lists
+    visibility_lists = []
+
+    # Create a list of colors for files and signals
+    file_colors = ['red', 'green', 'blue', 'orange', 'purple']
+    signal_colors = ['black', 'grey', 'brown']
+
+    for i, table in enumerate(all_tables):
+        df = pd.read_csv(table, sep='\t')
+
+        # Create a new visibility list for this file
+        visibility = [False] * len(fig.data)
+        
+        for j, signal in enumerate(signals):
+            if signal in df.columns:
+                signal_values = df[signal]
+
+                repetition_time = repetition_times[i]
+                time_indices = np.arange(0, len(signal_values)*repetition_time, repetition_time) 
+
+                # Get a color for this file and this signal
+                file_color = file_colors[i % len(file_colors)]
+                signal_color = signal_colors[j % len(signal_colors)]
+                color = file_color if len(signals) == 1 else signal_color
+
+                fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', line=dict(color=color), name=subject_names[i]+' '+signal))
+
+                # The last trace added should be visible for this file
+                visibility.append(True)
+        
+        # Add the visibility list for this file to the list of visibility lists
+        visibility_lists.append(visibility)
+
+    fig.update_layout(title=f'{signal}', 
+                      xaxis_title='Time (seconds)', 
+                      yaxis_title=f'{signal}', 
+                      autosize=True)
+
+    # Create the dropdown menu
+    dropdown_buttons = []
+    for i, visibility in enumerate(visibility_lists):
+        # Extend the visibility list to cover all traces
+        visibility += [False] * (len(fig.data) - len(visibility))
+        dropdown_buttons.append(dict(label=subject_names[i], method='update', 
+                                    args=[{'visible': visibility}, 
+                                        {'title': f'{signal} for {subject_names[i]}', 'showlegend': True}]))
+
+    # Add 'All Files' option
+    dropdown_buttons.append(dict(label='All group', method='update', 
+                                args=[{'visible': [True]*len(fig.data)}, 
+                                    {'title': f'{signal} for All Files', 'showlegend': True}]))
+
+    fig.update_layout(updatemenus=[dict(active=len(dropdown_buttons)-1, buttons=dropdown_buttons)])
+    fig.update_layout(
+    updatemenus=[
+        dict(
+            active=len(dropdown_buttons)-1, 
+            buttons=dropdown_buttons,
+            direction="down",
+            pad={"r": 10, "t": 10},
+            showactive=True,
+            x=0.1,  # this can be tweaked as per the requirement
+            xanchor="left",
+            y=1.1,  # placing it a bit above so it's visible
+            yanchor="top"
+        )
+    ],
+    )  # Cette parenthèse fermante est nécessaire
+
+    # Specify the directory to save the file
+    output_dir = os.path.join(output_dir, "report", "reportlets", "figures")
+    
+    # Check if the directory exists, if not create it
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Save the figure to an HTML file
+    fig_name = f"desc-{signal}_signal_for_all_subjects.html"
+    fig.write_html(os.path.join(output_dir, fig_name))
+
+
+
+
+
 def generate_report_with_plots(
     output_dir,
     run_uuid,
@@ -192,3 +283,33 @@ def generate_report_with_plots(
     )
     robj.generate_report()
     return robj.out_filename.absolute()
+
+import pandas as pd
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import plotly.graph_objs as go
+import os
+
+def perform_pca(all_files, reportlets_dir):
+    means = []
+    for file_path in all_files:
+        df = pd.read_csv(file_path, sep='\t')
+        df_mean = df[['framewise_displacement', 'dvars', 'std_dvars', 'rmsd']].mean()
+        df_mean.fillna(df_mean.mean(), inplace=True)
+        means.append(df_mean)
+
+    df_all_means = pd.concat(means, axis=1)
+
+    pca = PCA(n_components=2)
+    pca_result = pca.fit_transform(df_all_means)
+
+    fig1 = go.Figure(data=go.Scatter(x=pca_result[:, 0], y=pca_result[:, 1], mode='markers'))
+    fig1.update_layout(title='PCA - Principal Component Analysis', xaxis_title='Principal Component 1', yaxis_title='Principal Component 2')
+    fig1.write_html(os.path.join(reportlets_dir, 'pca_plot.html'))
+
+    explained_variance = pca.explained_variance_ratio_
+    fig2 = go.Figure([go.Bar(x=list(range(len(explained_variance))), y=explained_variance)])
+    fig2.update_layout(title='PCA - Explained variance by component', xaxis_title='Principal components', yaxis_title='Explained variance ratio')
+    fig2.write_html(os.path.join(reportlets_dir, 'pca_explained_variance.html'))

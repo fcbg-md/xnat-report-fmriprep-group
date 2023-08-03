@@ -31,16 +31,40 @@ sections:
 # - name: Summary
 #   reportlets:
 #   - bids: {datatype: figures, desc: summary, extension: [.html]}
-- name: Global signal
+- name: Basic confounds
   reportlets:
   - bids: {datatype: figures, desc: global, extension: [.html]}
-    caption: displays the global signal
+    caption: the average signal within the brain mask
     subtitle: Global signal
-- name: Csf signal
-  reportlets:
   - bids: {datatype: figures, desc: csf, extension: [.html]}
-    caption: displays the csf signal
+    caption:  the average signal within anatomically-derived eroded CSF mask
     subtitle: Csf signal
+  - bids: {datatype: figures, desc: white, extension: [.html]}
+    caption: the average signal within anatomically-derived eroded white matter mask
+    subtitle: White matter signal
+  - bids: {datatype: figures, desc: rot, extension: [.html]}
+    caption: the rotation parameters
+    subtitle: Rotation parameters
+  - bids: {datatype: figures, desc: trans, extension: [.html]}
+    caption: the translation parameters
+    subtitle: Translation parameters
+- name: Outlier detection
+  reportlets: 
+  - bids: {datatype: figures, desc: framewise, extension: [.html]}
+    caption: the framewise displacement
+    subtitle: Framewise displacement
+  - bids: {datatype: figures, desc: rmsd, extension: [.html]}
+    caption: the root mean square displacement
+    subtitle:   Root mean square displacement
+  - bids: {datatype: figures, desc: dvars, extension: [.html]}
+    caption: the DVARS
+    subtitle: DVARS
+  - bids: {datatype: figures, desc: std_dvars, extension: [.html]}
+    caption: the standardized DVARS
+    subtitle: Standardized DVARS
+  - bids: {datatype: figures, desc: non_steady_state_outlier_XX, extension: [.html]}
+    caption: the non-steady state outlier fraction
+    subtitle: Non-steady state outlier fraction
   # - bids: {datatype: figures, desc: segmentation_l extension: [.html]}
   #   caption: displays the statistics values of volume and segmentation metrics
   #   subtitle: Interactive view of the brain surface metrics
