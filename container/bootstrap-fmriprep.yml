@@ -62,9 +62,9 @@ sections:
   - bids: {datatype: figures, desc: std_dvars, extension: [.html]}
     caption: the standardized DVARS
     subtitle: Standardized DVARS
-  - bids: {datatype: figures, desc: non_steady_state_outlier_XX, extension: [.html]}
-    caption: the non-steady state outlier fraction
-    subtitle: Non-steady state outlier fraction
+  - bids: {datatype: figures, desc: pca, extension: [.html]}
+    caption: the principal components of the signal
+    subtitle: Principal components of the signal
   # - bids: {datatype: figures, desc: segmentation_l extension: [.html]}
   #   caption: displays the statistics values of volume and segmentation metrics
   #   subtitle: Interactive view of the brain surface metrics

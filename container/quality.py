@@ -170,7 +170,8 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
     # Save the figure to an HTML file
     fig_name = f"desc-{signal}_signal_for_all_subjects.html"
     fig.write_html(os.path.join(output_dir, fig_name))
-    \
+
+
 
 def generate_figure2(all_tables, repetition_times, signals, output_dir):
     fs=0.015
@@ -260,6 +261,48 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
     fig.write_html(os.path.join(output_dir, fig_name))
 
 
+# from sklearn.decomposition import PCA
+
+# def perform_pca(all_files, output_dir):
+
+#     output_dir = os.path.join(output_dir, "report", "reportlets", "figures")
+
+#     means = []
+#     for file_path in all_files:
+#         df = pd.read_csv(file_path, sep='\t')
+#         df_mean = df[['framewise_displacement', 'dvars', 'std_dvars', 'rmsd']].mean()
+#         df_mean.fillna(df_mean.mean(), inplace=True)
+#         means.append(df_mean)
+
+#     df_all_means = pd.concat(means, axis=1)
+
+#     pca = PCA(n_components=2)
+#     pca_result = pca.fit_transform(df_all_means)
+
+#         # Ensure the directory exists
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     # Assuming pca_result is an array containing your PCA data
+#     fig1 = go.Figure(data=go.Scatter(x=pca_result[:, 0], y=pca_result[:, 1], mode='markers'))
+#     fig1.update_layout(title='PCA - Principal Component Analysis', xaxis_title='Principal Component 1', yaxis_title='Principal Component 2')
+
+#     # Now you can write to the directory
+#     fig1.write_html(os.path.join(output_dir, 'pca_plot.html'))
+
+def display_motion_outliers(all_files):
+    # Loop over all files in the list
+    for filepath in all_files:
+        # Read the file into a pandas DataFrame
+        df = pd.read_csv(filepath, sep='\t')
+
+        # Filter the DataFrame for columns that start with 'motion_outlier'
+        motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+
+        # Display each motion outlier column
+        for outlier in motion_outliers:
+            print(f"{outlier}:\n")
+            print(df[outlier])
+            print("\n")
 
 
 
@@ -284,32 +327,3 @@ def generate_report_with_plots(
     robj.generate_report()
     return robj.out_filename.absolute()
 
-import pandas as pd
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-import plotly.graph_objs as go
-import os
-
-def perform_pca(all_files, reportlets_dir):
-    means = []
-    for file_path in all_files:
-        df = pd.read_csv(file_path, sep='\t')
-        df_mean = df[['framewise_displacement', 'dvars', 'std_dvars', 'rmsd']].mean()
-        df_mean.fillna(df_mean.mean(), inplace=True)
-        means.append(df_mean)
-
-    df_all_means = pd.concat(means, axis=1)
-
-    pca = PCA(n_components=2)
-    pca_result = pca.fit_transform(df_all_means)
-
-    fig1 = go.Figure(data=go.Scatter(x=pca_result[:, 0], y=pca_result[:, 1], mode='markers'))
-    fig1.update_layout(title='PCA - Principal Component Analysis', xaxis_title='Principal Component 1', yaxis_title='Principal Component 2')
-    fig1.write_html(os.path.join(reportlets_dir, 'pca_plot.html'))
-
-    explained_variance = pca.explained_variance_ratio_
-    fig2 = go.Figure([go.Bar(x=list(range(len(explained_variance))), y=explained_variance)])
-    fig2.update_layout(title='PCA - Explained variance by component', xaxis_title='Principal components', yaxis_title='Explained variance ratio')
-    fig2.write_html(os.path.join(reportlets_dir, 'pca_explained_variance.html'))
