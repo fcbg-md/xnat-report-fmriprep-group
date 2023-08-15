@@ -8,6 +8,8 @@ from scipy.signal import spectrogram
 from bids import BIDSLayout
 import re
 import json
+import nibabel as nib
+import matplotlib.pyplot as plt
 from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
 
@@ -19,15 +21,14 @@ def get_bids_data(data_path):
     lay=BIDSLayout(data_path)
 
     all_tables = layout.get(extension='.tsv', suffix='timeseries', scope='derivatives', return_type='filename')
-    information_files = lay.get(extension='.json', suffix='bold', return_type='sucject')  
+    information_files = lay.get(extension='.json', suffix='bold', return_type='subject')  
 
-    subject_names = []
-
+    entities = {}
     for table in all_tables:
-        match = re.search(r'sub-([a-zA-Z0-9]+)/ses-([a-zA-Z0-9]+)/.*run-([a-zA-Z0-9]+)', table)
-        if match:
-            subject_name = f"sub-{match.group(1)}_ses-{match.group(2)}_run{match.group(3)}"
-            subject_names.append(subject_name)
+        in_file = layout.get_file(table)
+        
+        entities = in_file.get_entities()
+        entities.pop("extension", None)
 
     repetition_times = []
 
@@ -36,8 +37,19 @@ def get_bids_data(data_path):
             data = json.load(f)
         repetition_times.append(data.get('RepetitionTime'))
 
-    return all_tables, repetition_times
+    return all_tables, entities, repetition_times
 
+def format_name(name):
+    parts = name.split('_')
+    
+    # Finding the run part and reformatting it
+    for part in parts:
+        if "run-" in part:
+            run_number = part.split('-')[-1]  # getting the '001' from 'run-001'
+            run_formatted = f"run{run_number}"  # converting 'run-001' to 'run001'
+            break
+    
+    return f"{parts[0]}_{parts[1]}_{run_formatted}"
 
 
 def group_consecutives(vals, step=1):
@@ -62,7 +74,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
     fig = go.Figure()
 
     # Create a list of subject names
-    subject_names = [os.path.basename(table).split('.')[0] for table in all_tables]
+    subject_names = [format_name(os.path.basename(table).split('.')[0]) for table in all_tables]
 
     # Create a list of visibility lists
     visibility_lists = []
@@ -124,6 +136,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
             visibility_lists.append(visibility)
 
 
+
     fig.update_layout(title=f'{signal}', 
                       xaxis_title='Time (seconds)', 
                       yaxis_title=f'{signal}', 
@@ -132,6 +145,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
     # Create the dropdown menu
     dropdown_buttons = []
     for i, visibility in enumerate(visibility_lists):
+        #print(subject_names[i])
         # Extend the visibility list to cover all traces
         visibility += [False] * (len(fig.data) - len(visibility))
         dropdown_buttons.append(dict(label=subject_names[i], method='update', 
@@ -260,35 +274,6 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
     fig_name = f"desc-{signal}_signal_for_all_subjects.html"
     fig.write_html(os.path.join(output_dir, fig_name))
 
-
-# from sklearn.decomposition import PCA
-
-# def perform_pca(all_files, output_dir):
-
-#     output_dir = os.path.join(output_dir, "report", "reportlets", "figures")
-
-#     means = []
-#     for file_path in all_files:
-#         df = pd.read_csv(file_path, sep='\t')
-#         df_mean = df[['framewise_displacement', 'dvars', 'std_dvars', 'rmsd']].mean()
-#         df_mean.fillna(df_mean.mean(), inplace=True)
-#         means.append(df_mean)
-
-#     df_all_means = pd.concat(means, axis=1)
-
-#     pca = PCA(n_components=2)
-#     pca_result = pca.fit_transform(df_all_means)
-
-#         # Ensure the directory exists
-#     os.makedirs(output_dir, exist_ok=True)
-
-#     # Assuming pca_result is an array containing your PCA data
-#     fig1 = go.Figure(data=go.Scatter(x=pca_result[:, 0], y=pca_result[:, 1], mode='markers'))
-#     fig1.update_layout(title='PCA - Principal Component Analysis', xaxis_title='Principal Component 1', yaxis_title='Principal Component 2')
-
-#     # Now you can write to the directory
-#     fig1.write_html(os.path.join(output_dir, 'pca_plot.html'))
-
 def display_motion_outliers(all_files):
     # Loop over all files in the list
     for filepath in all_files:
@@ -304,7 +289,30 @@ def display_motion_outliers(all_files):
             print(df[outlier])
             print("\n")
 
+def afficher_aseg(dossier_input, subject):
+    """
+    Affiche l'image aseg.mgz pour un sujet donné.
 
+    Args:
+    - dossier_input (str): Chemin du dossier contenant les données dérivées.
+    - subject (str): Identifiant du sujet.
+
+    Returns:
+    - None
+    """
+
+    # Chemin vers le fichier aseg.mgz
+    path_aseg = f"{dossier_input}/derivatives/fmriprep/sourcedata/freesurfer/{subject}/mri/aseg.mgz"
+
+    # Charger l'image
+    image_aseg = nib.load(path_aseg).get_fdata()
+
+    # Afficher une coupe axiale médiane
+    plt.imshow(image_aseg[image_aseg.shape[0] // 2], cmap="gray")
+    plt.title(f"aseg.mgz pour le sujet {subject} - coupe axiale")
+    plt.colorbar()
+    plt.axis('off')
+    plt.show()
 
 def generate_report_with_plots(
     output_dir,

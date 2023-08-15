@@ -27,20 +27,27 @@
 
 packagename: fmirprep
 title: 'Fmriprep group report'
+
 sections:
-# - name: Summary
-#   reportlets:
-#   - bids: {datatype: figures, desc: summary, extension: [.html]}
+# Add the "Summary" section at the beginning
+- name: Summary
+  reportlets:
+  - bids: {datatype: figures, desc: summary, extension: [.html]}
+    caption: |
+      This section provides a brief overview of the key metrics and their significance in the context of the MRI analysis. Understanding these metrics is essential to interpret the overall quality and reliability of the results.
+    subtitle: Key Metrics Overview
+
+# Explanation for each metric in the "Basic confounds" section
 - name: Basic confounds
   reportlets:
   - bids: {datatype: figures, desc: global, extension: [.html]}
-    caption: the average signal within the brain mask
+    caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
     subtitle: Global signal
   - bids: {datatype: figures, desc: csf, extension: [.html]}
-    caption:  the average signal within anatomically-derived eroded CSF mask
-    subtitle: Csf signal
+    caption: This metric represents the average signal within the anatomically-derived eroded cerebrospinal fluid (CSF) mask. A stable signal here can help ensure that CSF fluctuations aren't confounding the neural signals of interest.
+    subtitle: CSF signal
   - bids: {datatype: figures, desc: white, extension: [.html]}
-    caption: the average signal within anatomically-derived eroded white matter mask
+    caption: The average signal within the anatomically-derived eroded white matter mask provides insights into the integrity and quality of white matter regions.
     subtitle: White matter signal
   - bids: {datatype: figures, desc: rot, extension: [.html]}
     caption: the rotation parameters
