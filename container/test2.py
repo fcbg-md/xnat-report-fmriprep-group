@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 import matplotlib.pyplot as plt
-from quality import get_bids_data, generate_figure, generate_report_with_plots, generate_figure2, display_motion_outliers
+from quality import get_bids_data, generate_figure, generate_report_with_plots, generate_figure2
 
 data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
 data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
@@ -12,6 +12,77 @@ output_dir = "/home/axel/report-fmriprep/xnat-report-fmriprep-group/out_test"
 #output_dir = os.path.join(data_path, "report")
 reportlets_dir = os.path.join(output_dir, "/reportlets/figures")
 all_tables, repetition_times = get_bids_data(data_path)
+
+
+def generate_figure(all_tables, repetition_times, signal, output_dir):
+
+    fig = go.Figure()
+
+    # Dictionary to group signal values by subject
+    subjects_data = {}
+
+    for table, repetition_time in zip(all_tables, repetition_times):
+        df = pd.read_csv(table, sep='\t')
+
+        if signal in df.columns:
+            file_name = os.path.basename(table).split('.')[0]
+            subject_name = file_name.split('_')[0]
+
+            signal_values = df[signal]
+            time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+
+            if subject_name not in subjects_data:
+                subjects_data[subject_name] = []
+
+            subjects_data[subject_name].append((table, time_indices, signal_values))
+
+
+    visibility_lists = []
+
+    for subject, data_list in subjects_data.items():
+        visibility = [False] * len(all_tables)  # Ensure visibility is initialized here for each subject
+
+        for current_table, time_indices, signal_values in data_list:
+            file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
+
+            # Create a custom legend using the extracted file info
+            custom_legend = f"{subject}_ses-{file_info.get('ses', 'N/A')}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
+            
+            fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
+            visibility[-1] = True  # set the latest trace as visible
+
+        visibility_lists.append(visibility)
+
+    # Create the dropdown menu
+    dropdown_buttons = [
+        dict(
+            label="All",
+            method='update',
+            args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects', 'showlegend': True}]
+        )
+    ]
+    
+    for i, (subject, _) in enumerate(subjects_data.items()):
+        dropdown_buttons.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{signal} for {subject}', 'showlegend': True}]))
+    
+    fig.update_layout(updatemenus=[dict(
+        active=0, 
+        buttons=dropdown_buttons, 
+        direction="down", 
+        pad={"r": 10, "t": 10}, 
+        showactive=True, 
+        x=0.1, 
+        xanchor="left", 
+        y=1.1, 
+        yanchor="top"
+    )])
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    fig_name = f"desc-{signal}_signal_for_all_subjects.html"
+    fig.write_html(os.path.join(output_dir, fig_name))
+
 
 fig = go.Figure()
 

@@ -13,25 +13,25 @@ import matplotlib.pyplot as plt
 from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
 
-def bids_subjects(bids_directory: str):
-    layout = BIDSLayout(bids_directory)
-    subjects_filenames = layout.get(return_type='filename', target='subject', suffix='T1w', extension='nii.gz')
-    subjects_ids = layout.get(return_type='id', target='subject', suffix='T1w')
+# def bids_subjects(bids_directory: str):
+#     layout = BIDSLayout(bids_directory)
+#     subjects_filenames = layout.get(return_type='filename', target='subject', suffix='T1w', extension='nii.gz')
+#     subjects_ids = layout.get(return_type='id', target='subject', suffix='T1w')
 
-    pattern = "sub-{sub_id}"
+#     pattern = "sub-{sub_id}"
 
-    for subject_filename, sub_id_value in zip(subjects_filenames, subjects_ids):
-        in_file = layout.get_file(subject_filename)
+#     for subject_filename, sub_id_value in zip(subjects_filenames, subjects_ids):
+#         in_file = layout.get_file(subject_filename)
 
-        entities = in_file.get_entities()
-        entities.pop("extension", None)
+#         entities = in_file.get_entities()
+#         entities.pop("extension", None)
 
-        subject_string = pattern.format(sub_id=sub_id_value)
-        print(subject_string)  # This will print each subject string, like "sub-s05", "sub-s06", etc.
+#         subject_string = pattern.format(sub_id=sub_id_value)
+#         print(subject_string)  # This will print each subject string, like "sub-s05", "sub-s06", etc.
 
-        report_type = entities.pop("datatype", None)
-        report_type = "fs"
-        return subject_string
+#         report_type = entities.pop("datatype", None)
+#         report_type = "fs"
+#         return subject_string
 
 
 def get_bids_data(data_path):
@@ -63,17 +63,33 @@ def get_bids_data(data_path):
 
     return all_tables, entities, repetition_times
 
-def format_name(name):
-    parts = name.split('_')
+# def format_name(name):
+#     parts = name.split("_")
     
-    # Finding the run part and reformatting it
-    for part in parts:
-        if "run-" in part:
-            run_number = part.split('-')[-1]  # getting the '001' from 'run-001'
-            run_formatted = f"run{run_number}"  # converting 'run-001' to 'run001'
-            break
-    
-    return f"{parts[0]}_{parts[1]}_{run_formatted}"
+#     # Initialiser les variables pour stocker les parties du nom
+#     subject_part = None
+#     session_part = None
+#     run_formatted = None
+
+#     # Parcourir chaque partie pour trouver les éléments requis
+#     for part in parts:
+#         if "sub-" in part:
+#             subject_part = part
+#         elif "ses-" in part:
+#             session_part = part
+#         elif "run-" in part:
+#             run_number = part.split('-')[-1]  # Obtenir '004' de 'run-004'
+#             run_formatted = f"run{run_number}"  # Convertir 'run-004' en 'run004'
+
+#     # Vérifier si toutes les parties nécessaires ont été trouvées
+#     if not (subject_part and session_part and run_formatted):
+#         raise ValueError(f"Le nom '{name}' ne contient pas toutes les parties nécessaires.")
+
+#     print(f"Nom entré : {name}")
+#     print(f"Parties : {parts}")
+
+#     return f"{subject_part}_{session_part}_{run_formatted}"
+
 
 
 def group_consecutives(vals, step=1):
@@ -91,128 +107,95 @@ def group_consecutives(vals, step=1):
     return result
 
 
+def extract_file_info(file_name):
+    parts = file_name.split('_')
+    info = {}
+    for part in parts:
+        if '-' in part:  # Check if the part has the expected format
+            key, value = part.split('-')
+            info[key] = value
+    return info
+
 
 def generate_figure(all_tables, repetition_times, signal, output_dir):
-    fs=0.015
 
     fig = go.Figure()
 
-    # Create a list of subject names
-    subject_names = [format_name(os.path.basename(table).split('.')[0]) for table in all_tables]
+    # Dictionary to group signal values by subject
+    subjects_data = {}
 
-    # Create a list of visibility lists
-    visibility_lists = []
-
-    for i, table in enumerate(all_tables):
+    for table, repetition_time in zip(all_tables, repetition_times):
         df = pd.read_csv(table, sep='\t')
 
         if signal in df.columns:
+            file_name = os.path.basename(table).split('.')[0]
+            subject_name = file_name.split('_')[0]
+
             signal_values = df[signal]
+            time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
 
-            repetition_time = repetition_times[i]
-            time_indices = np.arange(0, len(signal_values)*repetition_time, repetition_time) 
+            if subject_name not in subjects_data:
+                subjects_data[subject_name] = []
 
-            frequencies, times, Sxx = spectrogram(signal_values, fs, nperseg=3)
+            subjects_data[subject_name].append((table, time_indices, signal_values))
 
-            mean_psd = np.mean(10 * np.log10(Sxx), axis=0)
+    print("subject_data" , subjects_data)
 
-            normalized_mean_psd = (mean_psd - np.min(mean_psd)) / (np.max(mean_psd) - np.min(mean_psd))
-            enhanced_mean_psd = normalized_mean_psd ** 2
-            mean_enhanced_psd = np.mean(enhanced_mean_psd)
-            std_enhanced_psd = np.std(enhanced_mean_psd)
 
-            threshold = mean_enhanced_psd + 2*std_enhanced_psd
-            anomaly_indices = np.where(enhanced_mean_psd > threshold)[0]
+    visibility_lists = []
 
-            grouped_anomaly_indices = group_consecutives(anomaly_indices)
+    for subject, data_list in subjects_data.items():
+        visibility = [False] * len(all_tables) # Ensure visibility is initialized here for each subject
 
-            color_palette = sns.color_palette("hsv", len(grouped_anomaly_indices)).as_hex()
+        for current_table, time_indices, signal_values in data_list:
+            file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
 
-            # Create a new visibility list for this file
-            visibility = [False] * len(fig.data)
+            # Create a custom legend using the extracted file info
+            custom_legend = f"{subject}_ses-{file_info.get('ses', 'N/A')}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
             
-            fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', line_color='darkgray', name=subject_names[i]))
+            fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
+            current_trace_index = len(fig.data) - 1
+            visibility[current_trace_index] = True
 
-            # The last trace added should be visible for this file
-            visibility.append(True)
+        visibility_lists.append(visibility)
 
-            for j, group in enumerate(grouped_anomaly_indices):
-                if group: 
-                    start_index = (group[0] * len(signal_values)) // len(times)
-                    end_index = (group[-1] * len(signal_values)) // len(times)
-                    start_index = max(min(start_index, len(signal_values)-1), 0)
-                    end_index = max(min(end_index, len(signal_values)-1), 0)
-                    anomalies = signal_values[start_index:end_index+1]
-                    time_indices_scaled = time_indices[start_index:end_index+1]
-
-                    if len(time_indices_scaled) == 1 and end_index+1 < len(signal_values):
-                        # If there is only one anomaly point, include the next non-anomaly point
-                        end_index += 1
-                        anomalies = signal_values[start_index:end_index+1]
-                        time_indices_scaled = time_indices[start_index:end_index+1]
-
-                    fig.add_trace(go.Scatter(x=time_indices_scaled, y=anomalies, mode='lines', line=dict(color=color_palette[j]), name=f'Anomaly {j+1} in {subject_names[i]}'))
-
-                    # The last trace added should be visible for this file
-                    visibility.append(True)
-
-            # Add the visibility list for this file to the list of visibility lists
-            visibility_lists.append(visibility)
-
-
-
-    fig.update_layout(title=f'{signal}', 
-                      xaxis_title='Time (seconds)', 
-                      yaxis_title=f'{signal}', 
-                      autosize=True)
+    print("visibility_lists" , visibility_lists)    
 
     # Create the dropdown menu
-    dropdown_buttons = []
-    for i, visibility in enumerate(visibility_lists):
-        #print(subject_names[i])
-        # Extend the visibility list to cover all traces
-        visibility += [False] * (len(fig.data) - len(visibility))
-        dropdown_buttons.append(dict(label=subject_names[i], method='update', 
-                                    args=[{'visible': visibility}, 
-                                        {'title': f'{signal} for {subject_names[i]}', 'showlegend': True}]))
-
-    # Add 'All Files' option
-    dropdown_buttons.append(dict(label='All group', method='update', 
-                                args=[{'visible': [True]*len(fig.data)}, 
-                                    {'title': f'{signal} for All Files', 'showlegend': True}]))
-
-    fig.update_layout(updatemenus=[dict(active=len(dropdown_buttons)-1, buttons=dropdown_buttons)])
-    fig.update_layout(
-    updatemenus=[
+    dropdown_buttons = [
         dict(
-            active=len(dropdown_buttons)-1, 
-            buttons=dropdown_buttons,
-            direction="down",
-            pad={"r": 10, "t": 10},
-            showactive=True,
-            x=0.1,  # this can be tweaked as per the requirement
-            xanchor="left",
-            y=1.1,  # placing it a bit above so it's visible
-            yanchor="top"
+            label="All",
+            method='update',
+            args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects', 'showlegend': True}]
         )
-    ],
-)
+    ]
     
-    # Specify the directory to save the file
-    output_dir = os.path.join(output_dir)
+    for i, (subject, _) in enumerate(subjects_data.items()):
+        dropdown_buttons.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{signal} for {subject}', 'showlegend': True}]))
     
-    # Check if the directory exists, if not create it
+    fig.update_layout(updatemenus=[dict(
+        active=0, 
+        buttons=dropdown_buttons, 
+        direction="down", 
+        pad={"r": 10, "t": 10}, 
+        showactive=True, 
+        x=0.1, 
+        xanchor="left", 
+        y=1.1, 
+        yanchor="top"
+    )])
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Save the figure to an HTML file
     fig_name = f"desc-{signal}_signal_for_all_subjects.html"
     fig.write_html(os.path.join(output_dir, fig_name))
 
 
 
+
+
 def generate_figure2(all_tables, repetition_times, signals, output_dir):
-    fs=0.015
     fig = go.Figure()
 
     # Create a list of subject names
@@ -230,6 +213,7 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
 
         # Create a new visibility list for this file
         visibility = [False] * len(fig.data)
+        
         
         for j, signal in enumerate(signals):
             if signal in df.columns:
@@ -314,30 +298,6 @@ def display_motion_outliers(all_files):
             print(df[outlier])
             print("\n")
 
-def afficher_aseg(dossier_input, subject):
-    """
-    Affiche l'image aseg.mgz pour un sujet donné.
-
-    Args:
-    - dossier_input (str): Chemin du dossier contenant les données dérivées.
-    - subject (str): Identifiant du sujet.
-
-    Returns:
-    - None
-    """
-
-    # Chemin vers le fichier aseg.mgz
-    path_aseg = f"{dossier_input}/derivatives/fmriprep/sourcedata/freesurfer/{subject}/mri/aseg.mgz"
-
-    # Charger l'image
-    image_aseg = nib.load(path_aseg).get_fdata()
-
-    # Afficher une coupe axiale médiane
-    plt.imshow(image_aseg[image_aseg.shape[0] // 2], cmap="gray")
-    plt.title(f"aseg.mgz pour le sujet {subject} - coupe axiale")
-    plt.colorbar()
-    plt.axis('off')
-    plt.show()
 
 def generate_report_with_plots(
     output_dir,
