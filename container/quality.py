@@ -13,6 +13,26 @@ import matplotlib.pyplot as plt
 from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
 
+def bids_subjects(bids_directory: str):
+    layout = BIDSLayout(bids_directory)
+    subjects_filenames = layout.get(return_type='filename', target='subject', suffix='T1w', extension='nii.gz')
+    subjects_ids = layout.get(return_type='id', target='subject', suffix='T1w')
+
+    pattern = "sub-{sub_id}"
+
+    for subject_filename, sub_id_value in zip(subjects_filenames, subjects_ids):
+        in_file = layout.get_file(subject_filename)
+
+        entities = in_file.get_entities()
+        entities.pop("extension", None)
+
+        subject_string = pattern.format(sub_id=sub_id_value)
+        print(subject_string)  # This will print each subject string, like "sub-s05", "sub-s06", etc.
+
+        report_type = entities.pop("datatype", None)
+        report_type = "fs"
+        return subject_string
+
 
 def get_bids_data(data_path):
     deriv_path = os.path.join(data_path, "derivatives/fmriprep")
@@ -22,6 +42,10 @@ def get_bids_data(data_path):
 
     all_tables = layout.get(extension='.tsv', suffix='timeseries', scope='derivatives', return_type='filename')
     information_files = lay.get(extension='.json', suffix='bold', return_type='subject')  
+
+
+    subject_names = []
+
 
     entities = {}
     for table in all_tables:
@@ -175,7 +199,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
 )
     
     # Specify the directory to save the file
-    output_dir = os.path.join(output_dir, "report", "reportlets", "figures")
+    output_dir = os.path.join(output_dir)
     
     # Check if the directory exists, if not create it
     if not os.path.exists(output_dir):
@@ -261,10 +285,10 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
             yanchor="top"
         )
     ],
-    )  # Cette parenthèse fermante est nécessaire
+    )
 
     # Specify the directory to save the file
-    output_dir = os.path.join(output_dir, "report", "reportlets", "figures")
+    output_dir = os.path.join(output_dir)
     
     # Check if the directory exists, if not create it
     if not os.path.exists(output_dir):
@@ -273,6 +297,7 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
     # Save the figure to an HTML file
     fig_name = f"desc-{signal}_signal_for_all_subjects.html"
     fig.write_html(os.path.join(output_dir, fig_name))
+
 
 def display_motion_outliers(all_files):
     # Loop over all files in the list
