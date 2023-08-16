@@ -4,176 +4,161 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 import matplotlib.pyplot as plt
-from quality import get_bids_data, generate_figure, generate_report_with_plots, generate_figure2
+# Imports
+import plotly.graph_objs as go
+import pandas as pd
+import numpy as np
 
-data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-output_dir = "/home/axel/report-fmriprep/xnat-report-fmriprep-group/out_test"
-#output_dir = os.path.join(data_path, "report")
-reportlets_dir = os.path.join(output_dir, "/reportlets/figures")
-all_tables, repetition_times = get_bids_data(data_path)
+# source data
+df = pd.DataFrame({0: {'num': 1, 'label': 'A', 'color': 'red', 'value': 0.4},
+                    1: {'num': 2, 'label': 'A', 'color': 'blue', 'value': 0.2},
+                    2: {'num': 3, 'label': 'A', 'color': 'green', 'value': 0.3},
+                    3: {'num': 4, 'label': 'A', 'color': 'red', 'value': 0.6},
+                    4: {'num': 5, 'label': 'A', 'color': 'blue', 'value': 0.7},
+                    5: {'num': 6, 'label': 'A', 'color': 'green', 'value': 0.4},
+                    6: {'num': 7, 'label': 'B', 'color': 'blue', 'value': 0.2},
+                    7: {'num': 8, 'label': 'B', 'color': 'green', 'value': 0.4},
+                    8: {'num': 9, 'label': 'B', 'color': 'red', 'value': 0.4},
+                    9: {'num': 10, 'label': 'B', 'color': 'green', 'value': 0.2},
+                    10: {'num': 11, 'label': 'C', 'color': 'red', 'value': 0.1},
+                    11: {'num': 12, 'label': 'C', 'color': 'blue', 'value': 0.3},
+                    12: {'num': 13, 'label': 'D', 'color': 'red', 'value': 0.8},
+                    13: {'num': 14, 'label': 'D', 'color': 'blue', 'value': 0.4},
+                    14: {'num': 15, 'label': 'D', 'color': 'green', 'value': 0.6},
+                    15: {'num': 16, 'label': 'D', 'color': 'yellow', 'value': 0.5},
+                    16: {'num': 17, 'label': 'E', 'color': 'purple', 'value': 0.68}}
+                    ).T
 
+df_input = df.copy()
 
-def generate_figure(all_tables, repetition_times, signal, output_dir):
+# split df by labels
+labels = df['label'].unique().tolist()
+dates = df['num'].unique().tolist()
 
-    fig = go.Figure()
-
-    # Dictionary to group signal values by subject
-    subjects_data = {}
-
-    for table, repetition_time in zip(all_tables, repetition_times):
-        df = pd.read_csv(table, sep='\t')
-
-        if signal in df.columns:
-            file_name = os.path.basename(table).split('.')[0]
-            subject_name = file_name.split('_')[0]
-
-            signal_values = df[signal]
-            time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
-
-            if subject_name not in subjects_data:
-                subjects_data[subject_name] = []
-
-            subjects_data[subject_name].append((table, time_indices, signal_values))
-
-
-    visibility_lists = []
-
-    for subject, data_list in subjects_data.items():
-        visibility = [False] * len(all_tables)  # Ensure visibility is initialized here for each subject
-
-        for current_table, time_indices, signal_values in data_list:
-            file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
-
-            # Create a custom legend using the extracted file info
-            custom_legend = f"{subject}_ses-{file_info.get('ses', 'N/A')}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
-            
-            fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
-            visibility[-1] = True  # set the latest trace as visible
-
-        visibility_lists.append(visibility)
-
-    # Create the dropdown menu
-    dropdown_buttons = [
-        dict(
-            label="All",
-            method='update',
-            args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects', 'showlegend': True}]
-        )
-    ]
+# dataframe collection grouped by labels
+dfs = {}
+for label in labels:
+    dfs[label]=pd.pivot_table(df[df['label']==label],
+                                    values='value',
+                                    index=['num'],
+                                    columns=['color'],
+                                    aggfunc=np.sum)
     
-    for i, (subject, _) in enumerate(subjects_data.items()):
-        dropdown_buttons.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{signal} for {subject}', 'showlegend': True}]))
-    
-    fig.update_layout(updatemenus=[dict(
-        active=0, 
-        buttons=dropdown_buttons, 
-        direction="down", 
-        pad={"r": 10, "t": 10}, 
-        showactive=True, 
-        x=0.1, 
-        xanchor="left", 
-        y=1.1, 
-        yanchor="top"
-    )])
+print (dfs)
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+# find row and column unions
+common_cols = []
+common_rows = []
+for df in dfs.keys():
+    common_cols = sorted(list(set().union(common_cols,list(dfs[df]))))
+    common_rows = sorted(list(set().union(common_rows,list(dfs[df].index))))
 
-    fig_name = f"desc-{signal}_signal_for_all_subjects.html"
-    fig.write_html(os.path.join(output_dir, fig_name))
+# find dimensionally common dataframe
+df_common = pd.DataFrame(np.nan, index=common_rows, columns=common_cols)
 
+# reshape each dfs[df] into common dimensions
+dfc={}
+for df_item in dfs:
+    #print(dfs[unshaped])
+    df1 = dfs[df_item].copy()
+    s=df_common.combine_first(df1)
+    df_reshaped = df1.reindex_like(s)
+    dfc[df_item]=df_reshaped
 
+    print (df_reshaped) 
+
+# plotly start 
 fig = go.Figure()
+# one trace for each column per dataframe: AI and RANDOM
+for col in common_cols:
+    fig.add_trace(go.Scatter(x=dates,
+                             visible=True,
+                             marker=dict(size=12, line=dict(width=2)),
+                             marker_symbol = 'diamond',name=col
+                  )
+             )
 
-table = all_tables[105]
+# menu setup    
+updatemenu= []
 
-df = pd.read_csv(table, sep='\t')  # You forgot this line
+# buttons for menu 1, names
+buttons=[]
 
-if 'global_signal' in df.columns:
-    framewise_displacement = df['framewise_displacement']
-    
-    # FFT and frequency computation
-    fft_vals = np.fft.rfft(framewise_displacement)  # compute FFT
-    fft_freq = np.fft.rfftfreq(len(framewise_displacement), d=1.)  # compute frequencies
+# create traces for each color: 
+# build argVals for buttons and create buttons
+for df in dfc.keys():
+    argList = []
+    for col in dfc[df]:
+        #print(dfc[df][col].values)
+        argList.append(dfc[df][col].values)
+    argVals = [ {'y':argList}]
 
-    # Filter frequencies higher than 0.02
-    fft_vals[fft_freq > 0.02] = 0
+    buttons.append(dict(method='update',
+                        label=df,
+                        visible=True,
+                        args=argVals))
 
-    # Inverse FFT to get filtered time-domain signal
-    filtered_signal = np.fft.irfft(fft_vals)
+# buttons for menu 2, colors
+b2_labels = common_cols
 
-    # Create a Plotly figure
-    fig = go.Figure()
+# matrix to feed all visible arguments for all traces
+# so that they can be shown or hidden by choice
+b2_show = [list(b) for b in [e==1 for e in np.eye(len(b2_labels))]]
+buttons2=[]
+buttons2.append({'method': 'update',
+                 'label': 'All',
+                 'args': [{'visible': [True]*len(common_cols)}]})
 
-    # Add original and filtered signals to the figure
-    fig.add_trace(go.Scatter(y=framewise_displacement, mode='lines', name='Original Signal'))
-    #fig.add_trace(go.Scatter(y=framewise_displacement, mode='lines', name='Filtered Signal'))
+# create buttons to show or hide
+for i in range(0, len(b2_labels)):
+    buttons2.append(dict(method='update',
+                        label=b2_labels[i],
+                        args=[{'visible':b2_show[i]}]
+                        )
+                   )
 
-    fig.update_layout(title='framewise_displacement Signal (Original and Filtered)', 
-                      xaxis_title='Time', 
-                      yaxis_title='framewise_displacement Signal', 
-                      autosize=True)
-    fig.show()
+# add option for button two to hide all
+buttons2.append(dict(method='update',
+                        label='None',
+                        args=[{'visible':[False]*len(common_cols)}]
+                        )
+                   )
 
-from scipy.signal import spectrogram
+# some adjustments to the updatemenus
+updatemenu=[]
+your_menu=dict()
+updatemenu.append(your_menu)
+your_menu2=dict()
+updatemenu.append(your_menu2)
+updatemenu[1]
+updatemenu[0]['buttons']=buttons
+updatemenu[0]['direction']='down'
+updatemenu[0]['showactive']=True
+updatemenu[1]['buttons']=buttons2
+updatemenu[1]['y']=0.6
 
-# Assume that 'global_signal' is your signal and 'fs' is the sampling ratefs
-fs=0.02
-frequencies, times, Sxx = spectrogram(framewise_displacement, fs, nperseg=3)
+fig.update_layout(showlegend=False, updatemenus=updatemenu)
+fig.update_layout(yaxis=dict(range=[0,df_input['value'].max()+0.4]))
 
+# title
+fig.update_layout(
+    title=dict(
+        text= "<i>Filtering with multiple dropdown buttons</i>",
+        font={'size':18},
+        y=0.9,
+        x=0.5,
+        xanchor= 'center',
+        yanchor= 'top'))
 
-# Calculate mean PSD for each time point
-mean_psd = np.mean(10 * np.log10(Sxx), axis=0)
+# button annotations
+fig.update_layout(
+    annotations=[
+        dict(text="<i>Label</i>", x=-0.2, xref="paper", y=1.1, yref="paper",
+            align="left", showarrow=False, font = dict(size=16, color = 'steelblue')),
+        dict(text="<i>Color</i>", x=-0.2, xref="paper", y=0.7, yref="paper",
+            align="left", showarrow=False, font = dict(size=16, color = 'steelblue')
 
-# Calculate mean PSD for each time point
-mean_psd = np.mean(10 * np.log10(Sxx), axis=0)
-# Plot mean PSD over time
-plt.plot(times, mean_psd)
-plt.xlabel('Time [sec]')
-plt.ylabel('Mean PSD [dB]')
-plt.title('Mean Spectral Power Density over Time')
-plt.show()
-def group_consecutives(vals, step=1):
-    """Return list of consecutive lists of numbers from vals (number list)."""
-    run = []
-    result = [run]
-    expect = None
-    for v in vals:
-        if (v == expect) or (expect is None):
-            run.append(v)
-        else:
-            run = [v]
-            result.append(run)
-        expect = v + step
-    return result
+                             )
+    ])
 
-# Your code
-normalized_mean_psd = (mean_psd - np.min(mean_psd)) / (np.max(mean_psd) - np.min(mean_psd))
-enhanced_mean_psd = normalized_mean_psd ** 2
-mean_enhanced_psd = np.mean(enhanced_mean_psd)
-std_enhanced_psd = np.std(enhanced_mean_psd)
-
-threshold = mean_enhanced_psd + 2*std_enhanced_psd
-anomaly_indices = np.where(enhanced_mean_psd > threshold)[0]
-
-# Group the consecutive indices
-grouped_anomaly_indices = group_consecutives(anomaly_indices)
-
-
-for group in grouped_anomaly_indices:
-    print(enhanced_mean_psd[group])
-
-# Visualize the data and anomalies
-plt.figure(figsize=(10, 6))
-plt.plot(times, enhanced_mean_psd, label='Enhanced Mean PSD')
-for group in grouped_anomaly_indices:
-    plt.plot(times[group], enhanced_mean_psd[group], 'ro', markersize=4, label='Anomalies')
-plt.legend()
-plt.title('Enhanced Mean PSD and Anomalies')
-plt.xlabel('Time [sec]')
-plt.ylabel('Enhanced Mean PSD')
-plt.show()
-
-len(times)
-
+fig.show()

@@ -107,90 +107,156 @@ def group_consecutives(vals, step=1):
     return result
 
 
-def extract_file_info(file_name):
-    parts = file_name.split('_')
-    info = {}
-    for part in parts:
-        if '-' in part:  # Check if the part has the expected format
-            key, value = part.split('-')
-            info[key] = value
-    return info
+def extract_file_info(filename):
+    # Extract relevant info from the filename
+    parts = filename.split('_')
+    subject = [part for part in parts if 'sub' in part][0]
+    task = [part.split('-')[1] for part in parts if 'task' in part][0]
+    return {'file_name': filename, 'subject': subject, 'task': task}
 
 
-def generate_figure(all_tables, repetition_times, signal, output_dir):
+def generate_figures(all_tables, repetition_times, signal, output_dir):
 
+    file_info_list = []
     fig = go.Figure()
-
-    # Dictionary to group signal values by subject
-    subjects_data = {}
 
     for table, repetition_time in zip(all_tables, repetition_times):
         df = pd.read_csv(table, sep='\t')
-
+        
+        # Vérifier si la colonne 'signal' est dans df
         if signal in df.columns:
-            file_name = os.path.basename(table).split('.')[0]
-            subject_name = file_name.split('_')[0]
+            df = df[[signal]]
+            base_name = os.path.basename(table)
 
-            signal_values = df[signal]
-            time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+            file_info = extract_file_info(os.path.basename(table).split('.')[0])
 
-            if subject_name not in subjects_data:
-                subjects_data[subject_name] = []
+            match = re.match(r"(sub-\w+)_ses-\w+_task-(\w+)_run-\w+_desc-\w+\.tsv", base_name)
 
-            subjects_data[subject_name].append((table, time_indices, signal_values))
-
-    print("subject_data" , subjects_data)
-
-
-    visibility_lists = []
-
-    for subject, data_list in subjects_data.items():
-        visibility = [False] * len(all_tables) # Ensure visibility is initialized here for each subject
-
-        for current_table, time_indices, signal_values in data_list:
-            file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
-
-            # Create a custom legend using the extracted file info
-            custom_legend = f"{subject}_ses-{file_info.get('ses', 'N/A')}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
+            if match:
+                subject = match.group(1)
+                task = match.group(2)
+                file_num = all_tables.index(table) + 1  # supposons que file_num est simplement l'index + 1
+                file_info_list.append([file_num, base_name, subject, task])
             
+            session_name = file_info.get('ses', 'N/A')
+
+            signal_values = df[signal].values
+            time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+            
+
+            custom_legend = f"{subject}_ses-{session_name}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
             fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
-            current_trace_index = len(fig.data) - 1
-            visibility[current_trace_index] = True
+        
 
-        visibility_lists.append(visibility)
+    # Convertir la liste en DataFrame
+    columns = ["file_num", "file_name", "subject", "task"]
+    df_files = pd.DataFrame(file_info_list, columns=columns)
 
-    print("visibility_lists" , visibility_lists)    
+    subjects = df_files['subject'].unique().tolist()
+    dfs_by_subject = {subject: df_files[df_files['subject'] == subject] for subject in subjects}
 
-    # Create the dropdown menu
-    dropdown_buttons = [
-        dict(
-            label="All",
-            method='update',
-            args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects', 'showlegend': True}]
-        )
-    ]
+    dfs = {}
+    for subject in subjects:
+        dfs[subject]=pd.pivot_table(df_files[df_files['subject']==subject],
+                                        values=['file_name'],
+                                        index=['file_num'],
+                                        columns=['task'],
+                                        aggfunc=np.sum)
+        
+    common_cols = []
+    common_rows = []
+    for df in dfs.keys():
+        common_cols = sorted(list(set().union(common_cols,list(dfs[df]))))
+        common_rows = sorted(list(set().union(common_rows,list(dfs[df].index))))
+
+    # find dimensionally common dataframe
+    df_common = pd.DataFrame(np.nan, index=common_rows, columns=common_cols)
+
+    # reshape each dfs[df] into common dimensions
+    dfc={}
+    for df_item in dfs:
+        #print(dfs[unshaped])
+        df1 = dfs[df_item].copy()
+        s=df_common.combine_first(df1)
+        df_reshaped = df1.reindex_like(s)
+        dfc[df_item]=df_reshaped
+
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', None)
+
+    print(df_reshaped)
+
+    # Nom des colonnes
+    column_names = df_reshaped.columns.tolist()
+    print("Column Names:", column_names)
+
+    # Nombre de colonnes
+    num_columns = len(df_reshaped.columns)
+    print("Number of Columns:", num_columns)
+
+    # Nombre de lignes
+    num_rows = len(df_reshaped)
+    print("Number of Rows:", num_rows)
+
+
+
+    # one trace for each column per dataframe: AI and RANDOM
+
+
+
+# def generate_figures(all_tables, repetition_times, signal, output_dir):
+
+#     fig = go.Figure()
+
+#     # Dictionary to group signal values by subject and session
+#     subjects_data = {}
+
+#     for table, repetition_time in zip(all_tables, repetition_times):
+#         df = pd.read_csv(table, sep='\t')
+#         if signal in df.columns:
+#             file_info = extract_file_info(os.path.basename(table).split('.')[0])
+            
+#             subject_name = file_info['sub']
+#             session_name = file_info.get('ses', 'N/A')
+            
+#             if subject_name not in subjects_data:
+#                 subjects_data[subject_name] = {}
+#             if session_name not in subjects_data[subject_name]:
+#                 subjects_data[subject_name][session_name] = []
+            
+#             signal_values = df[signal].values
+#             time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+            
+#             # Adding to the figure
+#             custom_legend = f"{subject_name}_ses-{session_name}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
+#             fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
+            
+#             subjects_data[subject_name][session_name].append((time_indices, signal_values))
+
+#     dropdown_buttons = []
     
-    for i, (subject, _) in enumerate(subjects_data.items()):
-        dropdown_buttons.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{signal} for {subject}', 'showlegend': True}]))
+#     # "All" option
+#     dropdown_buttons.append(dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects and Sessions', 'showlegend': True}]))
     
-    fig.update_layout(updatemenus=[dict(
-        active=0, 
-        buttons=dropdown_buttons, 
-        direction="down", 
-        pad={"r": 10, "t": 10}, 
-        showactive=True, 
-        x=0.1, 
-        xanchor="left", 
-        y=1.1, 
-        yanchor="top"
-    )])
+#     for subject in subjects_data:
+#         for session in subjects_data[subject]:
+#             label = f"{subject} - Session: {session}"
+#             visibility = [trace.name.startswith(f"{subject}_ses-{session}") for trace in fig.data]
+#             dropdown_buttons.append(dict(label=label, method='update', args=[{'visible': visibility}, {'title': f'{signal} for {label}', 'showlegend': True}]))
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+#     fig.update_layout(
+#         updatemenus=[
+#             dict(buttons=dropdown_buttons, direction="down", x=0.1, xanchor="left", y=1.1, yanchor="top")
+#         ]
+#     )
 
-    fig_name = f"desc-{signal}_signal_for_all_subjects.html"
-    fig.write_html(os.path.join(output_dir, fig_name))
+#     if not os.path.exists(output_dir):
+#         os.makedirs(output_dir)
 
+#     fig_name = f"desc-{signal}_signal_for_all_subjects.html"
+#     fig.write_html(os.path.join(output_dir, fig_name))
 
 
 
@@ -201,86 +267,72 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
     # Create a list of subject names
     subject_names = [os.path.basename(table).split('.')[0] for table in all_tables]
 
-    # Create a list of visibility lists
-    visibility_lists = []
-
-    # Create a list of colors for files and signals
     file_colors = ['red', 'green', 'blue', 'orange', 'purple']
     signal_colors = ['black', 'grey', 'brown']
 
+    # For each table and signal, add a trace to the figure
     for i, table in enumerate(all_tables):
         df = pd.read_csv(table, sep='\t')
-
-        # Create a new visibility list for this file
-        visibility = [False] * len(fig.data)
-        
-        
         for j, signal in enumerate(signals):
             if signal in df.columns:
                 signal_values = df[signal]
-
                 repetition_time = repetition_times[i]
                 time_indices = np.arange(0, len(signal_values)*repetition_time, repetition_time) 
-
-                # Get a color for this file and this signal
                 file_color = file_colors[i % len(file_colors)]
                 signal_color = signal_colors[j % len(signal_colors)]
                 color = file_color if len(signals) == 1 else signal_color
+                fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', line=dict(color=color), name=subject_names[i]+' '+signal, visible="legendonly"))
 
-                fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', line=dict(color=color), name=subject_names[i]+' '+signal))
+    # Dropdown for subjects
+    subjects_buttons = []
+    for i, subject in enumerate(subject_names):
+        visibility = [subject in trace.name for trace in fig.data]
+        subjects_buttons.append(dict(label=subject, method="update", args=[{"visible": visibility}]))
 
-                # The last trace added should be visible for this file
-                visibility.append(True)
-        
-        # Add the visibility list for this file to the list of visibility lists
-        visibility_lists.append(visibility)
+    # Dropdown for signals
+    signals_buttons = []
+    for signal in signals:
+        visibility = [signal in trace.name for trace in fig.data]
+        signals_buttons.append(dict(label=signal, method="update", args=[{"visible": visibility}]))
 
-    fig.update_layout(title=f'{signal}', 
-                      xaxis_title='Time (seconds)', 
-                      yaxis_title=f'{signal}', 
-                      autosize=True)
-
-    # Create the dropdown menu
-    dropdown_buttons = []
-    for i, visibility in enumerate(visibility_lists):
-        # Extend the visibility list to cover all traces
-        visibility += [False] * (len(fig.data) - len(visibility))
-        dropdown_buttons.append(dict(label=subject_names[i], method='update', 
-                                    args=[{'visible': visibility}, 
-                                        {'title': f'{signal} for {subject_names[i]}', 'showlegend': True}]))
-
-    # Add 'All Files' option
-    dropdown_buttons.append(dict(label='All group', method='update', 
-                                args=[{'visible': [True]*len(fig.data)}, 
-                                    {'title': f'{signal} for All Files', 'showlegend': True}]))
-
-    fig.update_layout(updatemenus=[dict(active=len(dropdown_buttons)-1, buttons=dropdown_buttons)])
     fig.update_layout(
-    updatemenus=[
-        dict(
-            active=len(dropdown_buttons)-1, 
-            buttons=dropdown_buttons,
-            direction="down",
-            pad={"r": 10, "t": 10},
-            showactive=True,
-            x=0.1,  # this can be tweaked as per the requirement
-            xanchor="left",
-            y=1.1,  # placing it a bit above so it's visible
-            yanchor="top"
-        )
-    ],
+        updatemenus=[
+            dict(
+                active=0,
+                buttons=subjects_buttons,
+                direction="down",
+                x=0.1,
+                xanchor="left",
+                y=1.15,
+                yanchor="top"
+            ),
+            dict(
+                active=0,
+                buttons=signals_buttons,
+                direction="down",
+                x=0.35,
+                xanchor="left",
+                y=1.15,
+                yanchor="top"
+            )
+        ],
+        title=f'Select a Subject and Signal to View',
+        xaxis_title='Time (seconds)'
     )
 
     # Specify the directory to save the file
     output_dir = os.path.join(output_dir)
-    
+
     # Check if the directory exists, if not create it
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     # Save the figure to an HTML file
-    fig_name = f"desc-{signal}_signal_for_all_subjects.html"
+    fig_name = "desc-signal_for_all_subjects.html"
     fig.write_html(os.path.join(output_dir, fig_name))
+
+# Example use
+# generate_figure2(['path_to_file1.csv', 'path_to_file2.csv'], [2.0, 2.0], ['Signal1', 'Signal2'], './output')
 
 
 def display_motion_outliers(all_files):
