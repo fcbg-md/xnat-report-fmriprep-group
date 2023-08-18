@@ -202,6 +202,19 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
 
         visibility_lists = []
 
+        fig.update_layout(
+            title={
+                'text': f'{signal} for task: {task}',
+                'y':0.95,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'},
+            title_font=dict(size=24, color='rgb(107, 107, 107)', family="Courier New, monospace"),
+            xaxis_title='Time (seconds)', 
+            yaxis_title=f'{signal}', 
+            autosize=True
+        )
+
         for subject, data_list in subjects_data.items():
             visibility = [False] * len(all_tables)
 
@@ -283,10 +296,20 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
             # Ajouter la liste de visibilité pour ce sujet à la liste des listes de visibilité
             visibility_lists.append(visibility)
 
-        # Ajouter le bouton "Tous les sujets"
-        dropdown_buttons.append(dict(label='All Subjects', method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'All Subjects for Task {task_name}'}]))
-        
-        all_dropdown_buttons.append(dropdown_buttons)
+    fig.update_layout(title=f'{signal}', 
+                      xaxis_title='Time (seconds)', 
+                      yaxis_title=f'{signal}', 
+                      autosize=True)
+
+    # Create the dropdown menu
+    dropdown_buttons = []
+    for i, visibility in enumerate(visibility_lists):
+        # Extend the visibility list to cover all traces
+        visibility += [False] * (len(fig.data) - len(visibility))
+        dropdown_buttons.append(dict(label=subject_names[i], method='update', 
+                                    args=[{'visible': visibility}, 
+                                        {'title': f'{signal} for {subject_names[i]}', 'showlegend': True}]))
+
 
     # Appliquer les mises à jour de mise en page et les boutons de menu déroulant à la figure
     for task_idx, task_name in enumerate(tasks):

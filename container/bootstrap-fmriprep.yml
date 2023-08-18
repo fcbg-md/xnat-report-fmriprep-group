@@ -50,8 +50,8 @@ sections:
       folded: true
       # If an ID is not provided, one should be generated automatically
       #id: 'summary-meta'
-    title: Visual report for Aliceloc task
-- name: Basic confounds
+    title: Visual fmriprep report by tasks
+- name: Basic confounds - Global Signal
   reportlets:
   - bids: {datatype: figures, desc: global, extension: [.html]}
     caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
@@ -62,20 +62,28 @@ sections:
   - bids: {datatype: figures, desc: white, extension: [.html]}
     caption: The average signal within the anatomically-derived eroded white matter mask provides insights into the integrity and quality of white matter regions.
     subtitle: White matter signal
+- name: Basic confounds - Rotations
+  reportlets:
   - bids: {datatype: figures, desc: rot, extension: [.html]}
     caption: the rotation parameters
     subtitle: Rotation parameters
+- name: Basic confounds - Translations
+  reportlets:
   - bids: {datatype: figures, desc: trans, extension: [.html]}
     caption: the translation parameters
     subtitle: Translation parameters
-- name: Outlier detection
+- name: Outlier detection - Framewise displacement
   reportlets:
   - bids: {datatype: figures, desc: framewise, extension: [.html]}
     caption: the framewise displacement
     subtitle: Framewise displacement
+- name: Outlier detection - RMSD
+  reportlets:
   - bids: {datatype: figures, desc: rmsd, extension: [.html]}
     caption: the root mean square displacement
     subtitle:   Root mean square displacement
+- name: Outlier detection - DVARS standard deviation
+  reportlets:
   - bids: {datatype: figures, desc: std, extension: [.html]}
     caption: the standardized DVARS
     subtitle: Standardized DVARS
