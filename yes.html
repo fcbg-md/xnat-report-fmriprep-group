@@ -1,0 +1,10 @@
+function showSelectedValue() {
+    // Récupérer le dropdown
+    var dropdown = document.getElementById("myDropdown");
+
+    // Récupérer la valeur sélectionnée
+    var selectedValue = dropdown.options[dropdown.selectedIndex].text;
+
+    // Afficher la valeur sélectionnée dans le rapport (ici dans une div avec l'ID "displayValue")
+    document.getElementById("displayValue").innerText = "Vous avez sélectionné : " + selectedValue;
+}

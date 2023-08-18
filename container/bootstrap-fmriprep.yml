@@ -25,32 +25,70 @@
 # typically in HTML format.
 ###########################################################################
 
-packagename: fmirprep
-title: '{filename} :: Freesurfer MRI report'
-sections:
+# packagename: fmirprep
+# title: 'Fmriprep group report'
+
+# sections:
+# # Add the "Summary" section at the beginning
 # - name: Summary
 #   reportlets:
 #   - bids: {datatype: figures, desc: summary, extension: [.html]}
-- name: Segmentation Metrics
+#     caption: |
+#       This section provides a brief overview of the key metrics and their significance in the context of the MRI analysis. Understanding these metrics is essential to interpret the overall quality and reliability of the results.
+#     subtitle: Key Metrics Overview
+
+# # Explanation for each metric in the "Basic confounds" section
+
+title: Visual fmriprep report for group
+sections:
+- name: Summary
   reportlets:
-  - bids: {datatype: figures, desc: segmentation, extension: [.html]}
-    caption: displays the stats
-    subtitle: Statistics values of segmentation metrics
-- name: Volume Metrics
+  - metadata: inline
+    settings:
+      # By default, only the first dictionary will be expanded.
+      # If folded is true, all will be folded. If false all expanded.
+      folded: true
+      # If an ID is not provided, one should be generated automatically
+      #id: 'summary-meta'
+    title: Visual fmriprep report by tasks
+- name: Basic confounds - Global Signal
   reportlets:
-  - bids: {datatype: figures, desc: volume, extension: [.html]}
-    caption: displays the stats
-    subtitle: Statistics values of volume metrics
-  # - bids: {datatype: figures, desc: segmentation_l extension: [.html]}
-  #   caption: displays the statistics values of volume and segmentation metrics
-  #   subtitle: Interactive view of the brain surface metrics
-  # - bids: {datatype: figures, desc: segmentation_volume_leftright, extension: [.html]}
-  #   caption: displays the statistics values of volume and segmentation metrics
-  #   subtitle: Interactive view of the brain surface metrics
-  # - bids: {datatype: reportlets, desc: carpet}
-  #   subtitle: Carpetplot and nuisance signals
-  #   caption: The so-called &laquo;carpetplot&raquo; may assist in assessing head-motion
-  #     derived artifacts and respiation effects.
+  - bids: {datatype: figures, desc: global, extension: [.html]}
+    caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
+    subtitle: Global signal
+  - bids: {datatype: figures, desc: csf, extension: [.html]}
+    caption: This metric represents the average signal within the anatomically-derived eroded cerebrospinal fluid (CSF) mask. A stable signal here can help ensure that CSF fluctuations aren't confounding the neural signals of interest.
+    subtitle: CSF signal
+  - bids: {datatype: figures, desc: white, extension: [.html]}
+    caption: The average signal within the anatomically-derived eroded white matter mask provides insights into the integrity and quality of white matter regions.
+    subtitle: White matter signal
+- name: Basic confounds - Rotations
+  reportlets:
+  - bids: {datatype: figures, desc: rot, extension: [.html]}
+    caption: the rotation parameters
+    subtitle: Rotation parameters
+- name: Basic confounds - Translations
+  reportlets:
+  - bids: {datatype: figures, desc: trans, extension: [.html]}
+    caption: the translation parameters
+    subtitle: Translation parameters
+- name: Outlier detection - Framewise displacement
+  reportlets:
+  - bids: {datatype: figures, desc: framewise, extension: [.html]}
+    caption: the framewise displacement
+    subtitle: Framewise displacement
+- name: Outlier detection - RMSD
+  reportlets:
+  - bids: {datatype: figures, desc: rmsd, extension: [.html]}
+    caption: the root mean square displacement
+    subtitle:   Root mean square displacement
+- name: Outlier detection - DVARS standard deviation
+  reportlets:
+  - bids: {datatype: figures, desc: std, extension: [.html]}
+    caption: the standardized DVARS
+    subtitle: Standardized DVARS
+
+    
 # - name: Extended visual report
 #   reportlets:
 #   - bids: {datatype: figures, desc: mean}
@@ -89,13 +127,43 @@ sections:
 #       <a href="https://templateflow.org/browse" target="_blank"><em>TemplateFlow</em></a>.
 #     subtitle: Spatial normalization of the anatomical image
     # static: false
+
+
+# - name: Tasks
+#   nested: true
+#   reportlets:
+#   - metadata: "input"
+#   - bids: 
+#       datatype: figures
+#       desc: global
+#       task: reward
+#       extension: [.html]
+#     caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
+#     subtitle: Global signal
+#     settings:
+#       folded: true
+#     caption: |
+#       The quantitative metrics are also used in the Freesurfer group report.
+#     title: AliceLoc
+#   - metadata: "ye"
+#     settings:
+#       # By default, only the first dictionary will be expanded.
+#       # If folded is true, all will be folded. If false all expanded.
+#       folded: true
+#       # If an ID is not provided, one should be generated automatically
+#       id: 'fk'
+#     caption: |
+#       The quantitative metrics are also used in the Freesurfer group report.
+#     title: Test3
+
+
 - name: About
   nested: true
   reportlets:
-  # - custom: errors
-    # path: '{reportlets_dir}/{run_uuid}'
-    # captions: <em>MRIQC</em> may have recorded failure conditions.
-    # title: Errors
+  - custom: errors
+    path: '{reportlets_dir}/{run_uuid}'
+    captions: <em>FMRIPREP</em> may have recorded failure conditions.
+    title: Errors
   - metadata: "input"
     settings:
       # By default, only the first dictionary will be expanded.
