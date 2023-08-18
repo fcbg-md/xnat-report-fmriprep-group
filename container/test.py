@@ -17,16 +17,21 @@ reportlets_dir.mkdir(parents=True, exist_ok=True)
 all_tables, entities, repetition_times = get_bids_data(data_path)
 print(os.path.exists(reportlets_dir))
 
+
 generate_figures(all_tables, repetition_times, 'global_signal', reportlets_dir)
-# generate_figures(all_tables, repetition_times, 'csf', reportlets_dir)
-# generate_figures(all_tables, repetition_times, 'white_matter', reportlets_dir)
-# generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)
-# generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir)
 
 
-# generate_figures(all_tables, repetition_times, 'framewise_displacement', reportlets_dir)
-# generate_figures(all_tables, repetition_times, 'std_dvars', reportlets_dir)
-# generate_figures(all_tables, repetition_times, 'rmsd', reportlets_dir)
+tasks= generate_figures(all_tables, repetition_times, 'global_signal', reportlets_dir)
+tasks= generate_figures(all_tables,repetition_times, 'csf', reportlets_dir)
+tasks= generate_figures(all_tables,repetition_times, 'white_matter', reportlets_dir)
+tasks= generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)
+tasks= generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir)
+
+
+tasks= generate_figures(all_tables,repetition_times, 'framewise_displacement', reportlets_dir)
+tasks= generate_figures(all_tables,repetition_times, 'std_dvars', reportlets_dir)
+tasks= generate_figures(all_tables,repetition_times, 'rmsd', reportlets_dir)
+
 
 #perform_pca(all_tables, output_dir)
 #display_motion_outliers(all_tables)
@@ -62,6 +67,7 @@ report_filename = generate_report_with_plots(
     reportlets_dir=reportlets_dir,
     bootstrap_file=bootstrap_file,
     metadata=metadata,
+    tasks=tasks,
     plugin_meta={}
 )
 
