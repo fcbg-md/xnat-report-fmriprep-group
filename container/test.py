@@ -1,6 +1,6 @@
 
 from quality import generate_figure2
-from quality import get_bids_data, generate_report_with_plots, generate_figures
+from quality import get_bids_data, generate_report_with_plots, generate_figure
 import uuid
 import os
 import pandas as pd
@@ -18,19 +18,16 @@ all_tables, entities, repetition_times = get_bids_data(data_path)
 print(os.path.exists(reportlets_dir))
 
 
-generate_figures(all_tables, repetition_times, 'global_signal', reportlets_dir)
+all_tasks = []
 
-
-tasks= generate_figures(all_tables, repetition_times, 'global_signal', reportlets_dir)
-tasks= generate_figures(all_tables,repetition_times, 'csf', reportlets_dir)
-tasks= generate_figures(all_tables,repetition_times, 'white_matter', reportlets_dir)
-tasks= generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)
-tasks= generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir)
-
-
-tasks= generate_figures(all_tables,repetition_times, 'framewise_displacement', reportlets_dir)
-tasks= generate_figures(all_tables,repetition_times, 'std_dvars', reportlets_dir)
-tasks= generate_figures(all_tables,repetition_times, 'rmsd', reportlets_dir)
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'global_signal', reportlets_dir))
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'csf', reportlets_dir))
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'white_matter', reportlets_dir))
+all_tasks.extend(generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir))
+all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir))
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displacement', reportlets_dir))
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'std_dvars', reportlets_dir))
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlets_dir))
 
 
 #perform_pca(all_tables, output_dir)
@@ -67,7 +64,7 @@ report_filename = generate_report_with_plots(
     reportlets_dir=reportlets_dir,
     bootstrap_file=bootstrap_file,
     metadata=metadata,
-    tasks=tasks,
+    tasks=all_tasks,  # Utilisez all_tasks ici
     plugin_meta={}
 )
 
