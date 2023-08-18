@@ -2,14 +2,10 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
-import seaborn as sns
 from plotly.subplots import make_subplots
-from scipy.signal import spectrogram
+#from scipy.signal import spectrogram
 from bids import BIDSLayout
-import re
 import json
-import nibabel as nib
-import matplotlib.pyplot as plt
 from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
 
@@ -203,17 +199,18 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
         visibility_lists = []
 
         fig.update_layout(
-            title={
-                'text': f'{signal} for task: {task}',
-                'y':0.95,
-                'x':0.5,
-                'xanchor': 'center',
-                'yanchor': 'top'},
-            title_font=dict(size=24, color='rgb(107, 107, 107)', family="Courier New, monospace"),
-            xaxis_title='Time (seconds)', 
-            yaxis_title=f'{signal}', 
-            autosize=True
-        )
+                title={
+                    'text': f'{signal} for task: {task}',
+                    'y':0.95,
+                    'x':0.5,
+                    'xanchor': 'center',
+                    'yanchor': 'top'},
+                title_font=dict(size=24, color='rgb(107, 107, 107)', family="Courier New, monospace"),
+                xaxis_title='Time (seconds)', 
+                yaxis_title=f'{signal}', 
+                autosize=True
+            )
+
 
         for subject, data_list in subjects_data.items():
             visibility = [False] * len(all_tables)
@@ -249,13 +246,13 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
 #     fig.write_html(os.path.join(output_dir, fig_name))
 
 
+
 def generate_figure2(all_tables, repetition_times, signals, output_dir):
     tasks = set()
 
-    # Detect all distinct tasks from tables
     for table in all_tables:
-        df = pd.read_csv(table, sep='\t')
-        tasks.update(df['task'].unique())  # Assuming there's a 'task' column
+        file_info = extract_file_info(os.path.basename(table).split('.')[0])
+        tasks.add(file_info.get('task', 'N/A'))
 
     # For each task, generate a distinct figure
     for task in tasks:

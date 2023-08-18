@@ -5,14 +5,18 @@ import uuid
 import os
 import pandas as pd
 from pathlib import Path
+import argparse
 
-data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-#data_path = "/home/axel/Test2/bids_fmriprep_1subj"
+#data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
+parser = argparse.ArgumentParser(description='Process data_path for the script.')
+parser.add_argument('data_path', type=str, help='Path to the data')
+args = parser.parse_args()
 
-output_dir="/home/axel/Test2/bids_fmriprep_10subj/"
+data_path = args.data_path
+
 #sub_id_value = bids_subjects(data_path)
-#output_dir=os.path.join(data_path, "report")
-#output_dir = os.path.join(data_path, "report")
+output_dir=os.path.join(data_path, "report")
+
 reportlets_dir = Path(output_dir) / "report" / "reportlets" / "figures"
 reportlets_dir.mkdir(parents=True, exist_ok=True)
 all_tables, entities, repetition_times = get_bids_data(data_path)
@@ -41,7 +45,7 @@ all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlet
 
 
 
-bootstrap_file="./container/bootstrap-fmriprep.yml"
+bootstrap_file="./bootstrap-fmriprep.yml"
 prov = {}
 
 metadata={
