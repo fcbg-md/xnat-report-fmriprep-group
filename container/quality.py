@@ -251,91 +251,107 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
 
 def generate_figure2(all_tables, repetition_times, signals, output_dir):
     tasks = set()
-    num_tasks = len(all_tables)
-    fig = make_subplots(rows=num_tasks, cols=1, shared_xaxes=True, vertical_spacing=0.007)
 
-    # Pour stocker toutes les options de boutons de menu déroulant pour chaque tâche
-    all_dropdown_buttons = []
+    # Detect all distinct tasks from tables
+    for table in all_tables:
+        df = pd.read_csv(table, sep='\t')
+        tasks.update(df['task'].unique())  # Assuming there's a 'task' column
 
-    # Pour chaque table (chaque tâche), générez un subplot
-    for task_idx, table in enumerate(all_tables):
-            # Extraire l'information de la tâche pour cette table
-        file_info = extract_file_info(os.path.basename(table).split('.')[0])
-        task_name = file_info.get('task', 'N/A')
-        
-        tasks.add(task_name)
+    # For each task, generate a distinct figure
+    for task in tasks:
+        fig = go.Figure()
 
-        # Créer une liste de noms de sujets
+        # Create a list of subject names
         subject_names = [os.path.basename(table).split('.')[0] for table in all_tables]
 
-        # Créer une liste de listes de visibilité
+        # Create a list of visibility lists
         visibility_lists = []
-        dropdown_buttons = []
 
-        for i, subject_table in enumerate(all_tables):
-            df = pd.read_csv(subject_table, sep='\t')
-            
-            # Créer une nouvelle liste de visibilité pour ce fichier
+        # Create a list of colors for files and signals
+        file_colors = ['red', 'green', 'blue', 'orange', 'purple']
+        signal_colors = ['black', 'grey', 'brown']
+
+        for i, table in enumerate(all_tables):
+            df = pd.read_csv(table, sep='\t')
+
+            # Create a new visibility list for this file
             visibility = [False] * len(fig.data)
-
+            
+            
             for j, signal in enumerate(signals):
                 if signal in df.columns:
                     signal_values = df[signal]
-                    repetition_time = repetition_times[task_idx]
+
+                    repetition_time = repetition_times[i]
                     time_indices = np.arange(0, len(signal_values)*repetition_time, repetition_time) 
 
-                    # Ajouter une trace pour ce signal
-                    fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=f"{subject_names[i]} {signal}"), row=task_idx+1, col=1)
+                    # Get a color for this file and this signal
+                    file_color = file_colors[i % len(file_colors)]
+                    signal_color = signal_colors[j % len(signal_colors)]
+                    color = file_color if len(signals) == 1 else signal_color
 
-                    # La dernière trace ajoutée devrait être visible pour ce fichier
+                    fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', line=dict(color=color), name=subject_names[i]+' '+signal))
+
+                    # The last trace added should be visible for this file
                     visibility.append(True)
-
-            # Ajouter le bouton pour ce sujet
-            dropdown_buttons.append(dict(label=subject_names[i], method="update", args=[{"visible": visibility}, {}]))
-
-            # Ajouter la liste de visibilité pour ce sujet à la liste des listes de visibilité
+            
+            # Add the visibility list for this file to the list of visibility lists
             visibility_lists.append(visibility)
 
-    fig.update_layout(title=f'{signal}', 
-                      xaxis_title='Time (seconds)', 
-                      yaxis_title=f'{signal}', 
-                      autosize=True)
-
-    # Create the dropdown menu
-    dropdown_buttons = []
-    for i, visibility in enumerate(visibility_lists):
-        # Extend the visibility list to cover all traces
-        visibility += [False] * (len(fig.data) - len(visibility))
-        dropdown_buttons.append(dict(label=subject_names[i], method='update', 
-                                    args=[{'visible': visibility}, 
-                                        {'title': f'{signal} for {subject_names[i]}', 'showlegend': True}]))
-
-
-    # Appliquer les mises à jour de mise en page et les boutons de menu déroulant à la figure
-    for task_idx, task_name in enumerate(tasks):
         fig.update_layout(
             title={
-                'text': f'Signals for Task: {task_name}',
-                'y': 0.95,
-                'x': 0.5,
+                'text': f'{signal} for task: {task}',
+                'y':0.95,
+                'x':0.5,
                 'xanchor': 'center',
-                'yanchor': 'top'
-            },
+                'yanchor': 'top'},
             title_font=dict(size=24, color='rgb(107, 107, 107)', family="Courier New, monospace"),
-            xaxis_title='Time (seconds)',
-            yaxis_title=f'Signal Value',
+            xaxis_title='Time (seconds)', 
+            yaxis_title=f'{signal}', 
             autosize=True
         )
 
-        fig.update_layout(updatemenus=[dict(buttons=all_dropdown_buttons[task_idx])])
+        # Create the dropdown menu
+        dropdown_buttons = []
+        for i, visibility in enumerate(visibility_lists):
+            # Extend the visibility list to cover all traces
+            visibility += [False] * (len(fig.data) - len(visibility))
+            dropdown_buttons.append(dict(label=subject_names[i], method='update', 
+                                        args=[{'visible': visibility}, 
+                                            {'title': f'{signal} for {subject_names[i]}', 'showlegend': True}]))
 
-    # Spécifier le répertoire pour sauvegarder le fichier
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        # Add 'All Files' option
+        dropdown_buttons.append(dict(label='All group', method='update', 
+                                    args=[{'visible': [True]*len(fig.data)}, 
+                                        {'title': f'{signal} for All Files', 'showlegend': True}]))
 
-    fig_name = f"desc-signal_for_{'_'.join(tasks)}.html"
-    fig.write_html(os.path.join(output_dir, fig_name))
+        fig.update_layout(updatemenus=[dict(active=len(dropdown_buttons)-1, buttons=dropdown_buttons)])
+        fig.update_layout(
+        updatemenus=[
+            dict(
+                active=len(dropdown_buttons)-1, 
+                buttons=dropdown_buttons,
+                direction="down",
+                pad={"r": 10, "t": 10},
+                showactive=True,
+                x=0.1,  # this can be tweaked as per the requirement
+                xanchor="left",
+                y=1.1,  # placing it a bit above so it's visible
+                yanchor="top"
+            )
+        ],
+        )
 
+        # Specify the directory to save the file
+        output_dir = os.path.join(output_dir)
+        
+        # Check if the directory exists, if not create it
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        fig_name = f"desc-{signal}_signal_for_task-{task}.html"
+        fig.write_html(os.path.join(output_dir, fig_name))
+    
     return tasks
 
 

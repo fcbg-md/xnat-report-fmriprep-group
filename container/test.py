@@ -6,14 +6,10 @@ import os
 import pandas as pd
 from pathlib import Path
 
+data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
+#data_path = "/home/axel/Test2/bids_fmriprep_1subj"
 
-<<<<<<< HEAD
-data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
-=======
-#data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-data_path = "/home/axel/Test2/bids_fmriprep_1subj"
->>>>>>> b59cf2d (update everything works well)
-output_dir="/home/axel/Test2/bids_fmriprep_1subj/"
+output_dir="/home/axel/Test2/bids_fmriprep_10subj/"
 #sub_id_value = bids_subjects(data_path)
 #output_dir=os.path.join(data_path, "report")
 #output_dir = os.path.join(data_path, "report")
