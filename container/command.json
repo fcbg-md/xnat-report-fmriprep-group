@@ -1,0 +1,78 @@
+{
+    "name": "fmriprep-group",
+    "label": "fmriprep-group-report",
+    "description": "Run the fmriprep visual group report",
+    "version": "1.0",
+    "image": "fmriprep-group-report:latest",
+    "type": "docker",
+    "command-line": "/app/test.py /in",
+    "mounts": [
+      {
+        "name": "input",
+        "writable": true,
+        "path": "/in"
+      },
+      {
+        "name": "output",
+        "writable": true,
+        "path": "/out"
+      }
+    ],
+    "environment-variables": {},
+    "ports": {},
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "newbids",
+        "description": "new bids",
+        "required": true,
+        "mount": "output"
+      }
+    ],
+    "xnat": [
+      {
+        "name": "fmriprep-group",
+        "label": "fmriprep-group-report",
+        "description": "Run the fmriprep visual group report",
+        "contexts": [
+          "xnat:projectData"
+        ],
+        "external-inputs": [
+          {
+            "name": "project",
+            "description": "Input project",
+            "type": "Project",
+            "required": true,
+            "load-children": true
+          }
+        ],
+        "derived-inputs": [
+          {
+            "name": "inputbids",
+            "label": "Directory",
+            "description": "Select the directory",
+            "type": "Resource",
+            "required": true,
+            "provides-files-for-command-mount": "input",
+            "load-children": true,
+            "derived-from-wrapper-input": "project",
+            "multiple": false
+          }
+        ],
+        "output-handlers": [
+          {
+            "name": "outputdir",
+            "accepts-command-output": "newbids",
+            "as-a-child-of": "project",
+            "type": "Resource",
+            "label": "fmriprep",
+            "tags": []
+          }
+        ]
+      }
+    ],
+    "container-labels": {},
+    "generic-resources": {},
+    "ulimits": {},
+    "secrets": []
+  }
