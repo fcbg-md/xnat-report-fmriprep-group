@@ -115,6 +115,29 @@ def extract_file_info(filename):
     # one trace for each column per dataframe: AI and RANDOM
 
 
+def detect_outliers(all_tables, repetition_times):
+    all_outliers_fd = []
+    all_outliers_dvars = []
+    
+    for table, repetition_time in zip(all_tables, repetition_times):
+        df = pd.read_csv(table, sep='\t')
+        
+        SEUIL_FRAMEWISE_DISPLACEMENT = 0.5
+        SEUIL_STD_DVARS = 1.5
+        
+        # Identification des outliers pour "framewise_displacement"
+        outliers_fd = df[df['framewise_displacement'] > SEUIL_FRAMEWISE_DISPLACEMENT]
+        
+        # Identification des outliers pour "std_dvars"
+        outliers_dvars = df[df['std_dvars'] > SEUIL_STD_DVARS]
+        
+        # Stockage des outliers pour chaque tableau
+        all_outliers_fd.append(outliers_fd)
+        all_outliers_dvars.append(outliers_dvars)
+    
+    return all_outliers_fd, all_outliers_dvars
+
+
 
 # def generate_figures(all_tables, repetition_times, signal, output_dir):
 

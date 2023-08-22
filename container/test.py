@@ -2,7 +2,7 @@
 
 
 from quality import generate_figure2
-from quality import get_bids_data, generate_report_with_plots, generate_figure
+from quality import get_bids_data, generate_report_with_plots, generate_figure, detect_outliers
 import uuid
 import os
 import pandas as pd
@@ -10,11 +10,12 @@ from pathlib import Path
 import argparse
 
 #data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-parser = argparse.ArgumentParser(description='Process data_path for the script.')
-parser.add_argument('data_path', type=str, help='Path to the data')
-args = parser.parse_args()
+data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
+# parser = argparse.ArgumentParser(description='Process data_path for the script.')
+# parser.add_argument('data_path', type=str, help='Path to the data')
+# args = parser.parse_args()
 
-data_path = args.data_path
+#data_path = args.data_path
 
 #sub_id_value = bids_subjects(data_path)
 output_dir=os.path.join(data_path, "report")
@@ -23,6 +24,8 @@ reportlets_dir = Path(output_dir) / "reportlets" / "figures"
 reportlets_dir.mkdir(parents=True, exist_ok=True)
 all_tables, entities, repetition_times = get_bids_data(data_path)
 print(os.path.exists(reportlets_dir))
+
+detect_outliers(all_tables, repetition_times)
 
 
 all_tasks = []
@@ -35,6 +38,9 @@ all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'tra
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displacement', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'std_dvars', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlets_dir))
+
+
+
 
 
 #perform_pca(all_tables, output_dir)
