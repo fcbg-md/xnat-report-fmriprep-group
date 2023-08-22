@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 
 from quality import generate_figure2
 from quality import get_bids_data, generate_report_with_plots, generate_figure
@@ -17,7 +19,7 @@ data_path = args.data_path
 #sub_id_value = bids_subjects(data_path)
 output_dir=os.path.join(data_path, "report")
 
-reportlets_dir = Path(output_dir) / "report" / "reportlets" / "figures"
+reportlets_dir = Path(output_dir) / "reportlets" / "figures"
 reportlets_dir.mkdir(parents=True, exist_ok=True)
 all_tables, entities, repetition_times = get_bids_data(data_path)
 print(os.path.exists(reportlets_dir))
