@@ -277,8 +277,8 @@ def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_
     for subject in visibility_by_subject.keys():
         dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[subject]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
 
-    fig.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
-    fig_tasks.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons_tasks, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
+    fig.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
+    fig_tasks.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_tasks, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
 
 def generate_figure(all_tables, repetition_times, signal, output_dir):
     if not all_tables:
@@ -395,6 +395,7 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
                 display_signal = "translation"
         
         fig_tasks.update_layout(
+            hoverlabel_namelength=-1,
             title={
                 'text': f'{display_signal} for task {task}',
                 'y':0.95,
@@ -408,6 +409,7 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
         )
 
         fig.update_layout(
+            hoverlabel_namelength=-1,
             title={
                 'text': f'{display_signal} for all tasks',
                 'y':0.95,
