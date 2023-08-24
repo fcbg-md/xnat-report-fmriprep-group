@@ -233,7 +233,36 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 yaxis_title=f'{signal}', 
                 autosize=True
             )
-
+            
+        fig.update_layout(
+            sliders=[
+                {
+                    'active': 0,
+                    'yanchor': 'top',
+                    'xanchor': 'left',
+                    'currentvalue': {
+                        'font': {'size': 20},
+                        'prefix': 'Threshold:',
+                        'visible': True,
+                        'xanchor': 'right'
+                    },
+                    'transition': {'duration': 300, 'easing': 'cubic-in-out'},
+                    'pad': {'b': 10, 't': 50},
+                    'len': 0.9,
+                    'x': 0.1,
+                    'y': 0,
+                    'steps': [{
+                        'args': [
+                            {'frame': {'duration': 300, 'redraw': True}},
+                            {'mode': 'immediate', 'transition': {'duration': 300}}
+                        ],
+                        'label': str(threshold),
+                        'method': 'animate',
+                        'value': str(threshold)
+                    } for threshold in np.arange(0, 2, 0.05)]  # vous pouvez ajuster la plage et les étapes selon vos besoins
+                }
+            ],
+        )
 
         for subject, data_list in subjects_data.items():
             visibility = [False] * len(all_tables)

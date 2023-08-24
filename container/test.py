@@ -2,7 +2,7 @@
 
 
 from quality import generate_figure2
-from quality import get_bids_data, generate_report_with_plots, generate_figure, detect_outliers
+from quality import get_bids_data, generate_report_with_plots, generate_figure
 import uuid
 import os
 import pandas as pd
@@ -25,8 +25,6 @@ reportlets_dir.mkdir(parents=True, exist_ok=True)
 all_tables, entities, repetition_times = get_bids_data(data_path)
 print(os.path.exists(reportlets_dir))
 
-detect_outliers(all_tables, repetition_times)
-
 
 all_tasks = []
 
@@ -38,7 +36,6 @@ all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'tra
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displacement', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'std_dvars', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlets_dir))
-
 
 
 
