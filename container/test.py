@@ -10,6 +10,8 @@ from pathlib import Path
 import argparse
 
 #data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
+#output_dir="/home/axel/Test2/bids_fmriprep_10subj/report"
+
 data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
 # parser = argparse.ArgumentParser(description='Process data_path for the script.')
 # parser.add_argument('data_path', type=str, help='Path to the data')
@@ -17,7 +19,6 @@ data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
 
 #data_path = args.data_path
 
-#sub_id_value = bids_subjects(data_path)
 output_dir=os.path.join(data_path, "report")
 
 reportlets_dir = Path(output_dir) / "reportlets" / "figures"
@@ -37,7 +38,7 @@ all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displa
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'std_dvars', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlets_dir))
 
-
+print(all_tables)
 
 
 #perform_pca(all_tables, output_dir)
@@ -66,7 +67,7 @@ metadata={
 # for file in files:
 #     entities.update(file.get_entities())
 
-report_dir=Path(output_dir) / "report"
+report_dir=output_dir
 
 report_filename = generate_report_with_plots(
     output_dir=report_dir,
