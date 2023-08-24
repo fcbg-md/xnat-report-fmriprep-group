@@ -37,8 +37,8 @@ all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'tra
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displacement', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'std_dvars', reportlets_dir))
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlets_dir))
+all_tasks.extend(generate_figure(all_tables, repetition_times, 'dvars', reportlets_dir))
 
-print(all_tables)
 
 
 #perform_pca(all_tables, output_dir)
