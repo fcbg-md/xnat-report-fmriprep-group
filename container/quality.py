@@ -107,6 +107,7 @@ def extract_unique_tasks(all_tables):
 
 def read_and_preprocess_data(task, all_tables, repetition_times, signal):
     global_data = {}  # Dictionnaire global pour contenir toutes les informations
+    motion_outliers_list = [] 
     
     for table, repetition_time in zip(all_tables, repetition_times):
         # Extraire les informations du fichier
@@ -145,26 +146,67 @@ def read_and_preprocess_data(task, all_tables, repetition_times, signal):
             # Obtenir les données du signal
             signal_values = df[signal]
             time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+
+            motion_outliers_columns = [col for col in df.columns if 'motion_outlier' in col]
+
+
+
+            # Somme logique le long de l'axe des colonnes
+            df['motion_outliers_combined'] = df[motion_outliers_columns].sum(axis=1)
+
+            # Convertir toute valeur >1 à 1
+            motion_outliers_combined_binary= df['motion_outliers_combined'] = df['motion_outliers_combined'].apply(lambda x: 1 if x >= 1 else 0)
+
+            motion_outliers_list = motion_outliers_combined_binary.tolist()
+            motion_outliers_list = [int(item) for item in motion_outliers_list]
+
+            #pd.set_option('display.max_rows', None)
             
             # Ajouter ces données au dictionnaire global
             global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run].append((table, time_indices, signal_values))
             
-    return global_data
+    return global_data, motion_outliers_list, repetition_time
 
 
-def plot_trace_data(fig, fig_tasks, global_data):
+def plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetition_time):
     visibility_by_subject = {}  # Initialisation du dictionnaire de visibilité
+    trace_colors = {}
+
     for subject, subject_info in global_data.items():
         visibility_by_subject[subject] = []
-        
+
         for session, session_info in subject_info['sessions'].items():
             for task, task_info in session_info['tasks'].items():
                 for run, data_list in task_info['runs'].items():
                     for current_table, time_indices, signal_values in data_list:
                         custom_legend = f"{subject}_{session}_task-{task}_{run}"
-                        fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
-                        fig_tasks.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
+                        new_trace = go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend)
+                        
+                        # Ajouter la trace et sauvegarder la couleur
+                        fig.add_trace(new_trace)
+                        fig_tasks.add_trace(new_trace)
+                        trace_colors[custom_legend] = new_trace.line.color
 
+                        for i, outlier in enumerate(motion_outliers_list):
+                            if outlier == 1:
+                                # Supposons que nous ayons une façon de trouver le custom_legend pour cet outlier
+                                custom_legend_for_outlier = ...  # À définir
+
+                                outlier_color = trace_colors.get(custom_legend_for_outlier, "Red")
+
+                                shape = go.layout.Shape(
+                                    type="line",
+                                    x0=i * repetition_time,
+                                    x1=i * repetition_time,
+                                    y0=0,
+                                    y1=1,
+                                    yref="paper",
+                                    line=dict(color=outlier_color, width=2)
+                                )
+
+                                fig.add_shape(shape)
+                                fig_tasks.add_shape(shape)
+            
                         # Mettre à jour la liste de visibilité pour le sujet
                         visibility_by_subject[subject].append(True)
                         
@@ -172,7 +214,47 @@ def plot_trace_data(fig, fig_tasks, global_data):
                         for other_subject in visibility_by_subject.keys():
                             if other_subject != subject:
                                 visibility_by_subject[other_subject].append(False)
-                        
+
+    # #motion_outliers_list = [int(item) for item in motion_outliers_list]
+    # for i, outlier in enumerate(motion_outliers_list):
+    #     if outlier == 1:
+    #         print(f"Checking at index {i}: Outlier value is {outlier}, Will draw shape: True")
+            
+    #         fig.add_shape(
+    #             go.layout.Shape(
+    #                 type="line",
+    #                 x0=i * repetition_time,
+    #                 x1=i * repetition_time,
+    #                 y0=0,
+    #                 y1=1,
+    #                 yref="paper",
+    #                 line=dict(
+    #                     color="Red",
+    #                     width=2
+    #                 )
+    #             )
+    #         )
+            
+    # # Ajout des outliers à fig_tasks
+    # for i, outlier in enumerate(motion_outliers_list):
+    #     if outlier == 1:
+
+    #         print(f"Checking at index {i}: Outlier value is {outlier}, Will draw shape: {(outlier == 1).any()}")
+
+    #         fig_tasks.add_shape(
+    #             go.layout.Shape(
+    #                 type="line",
+    #                 x0=i * repetition_time,
+    #                 x1=i * repetition_time,
+    #                 y0=0,
+    #                 y1=1,
+    #                 yref="paper",
+    #                 line=dict(
+    #                     color="Red",
+    #                     width=2
+    #                 )
+    #             )
+    #         )
     return visibility_by_subject  # Retourner le dictionnaire de visibilité
 
 
@@ -280,7 +362,7 @@ def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_
     fig.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
     fig_tasks.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_tasks, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
 
-def generate_figure(all_tables, repetition_times, signal, output_dir):
+def generate_figure(all_tables, repetition_times, signal, output_dir, motion_outliers_list):
     if not all_tables:
         raise ValueError("all_tables must contain at least one element.")
     
@@ -290,10 +372,12 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
     for task in tasks:
         fig = go.Figure()
         fig_tasks = go.Figure()
-        global_data = read_and_preprocess_data(task, all_tables, repetition_times, signal)
+        global_data, motion_outliers_list, repetition_time = read_and_preprocess_data(task, all_tables, repetition_times, signal)
+        
+
         
         # Appeler plot_trace_data pour fig et obtenir visibility_by_subject
-        visibility_by_subject = plot_trace_data(fig, fig_tasks, global_data)
+        visibility_by_subject = plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetition_time)
 
         # Pas besoin de calculer visibility_lists manuellement car elles sont déjà calculées dans plot_trace_data
         # Vous pouvez donc simplement passer visibility_by_subject à configure_layout_and_interactivity
