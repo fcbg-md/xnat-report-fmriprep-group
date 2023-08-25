@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+import time
 
+start_time = time.time()
 
 from quality import generate_figure2, extract_unique_tasks
 from quality import get_bids_data, generate_report_with_plots, generate_figure, read_and_preprocess_data
@@ -9,17 +11,18 @@ import pandas as pd
 from pathlib import Path
 import argparse
 
-#data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-#output_dir="/home/axel/Test2/bids_fmriprep_10subj/report"
+data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
+output_dir="/home/axel/Test2/bids_fmriprep_10subj/report"
 
-data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
+#data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
+#output_dir=os.path.join(data_path, "report")
+
 # parser = argparse.ArgumentParser(description='Process data_path for the script.')
 # parser.add_argument('data_path', type=str, help='Path to the data')
 # args = parser.parse_args()
 
 #data_path = args.data_path
 
-output_dir=os.path.join(data_path, "report")
 
 reportlets_dir = Path(output_dir) / "reportlets" / "figures"
 reportlets_dir.mkdir(parents=True, exist_ok=True)
@@ -49,7 +52,7 @@ all_tasks.extend(generate_figure(all_tables, repetition_times, 'rmsd', reportlet
 global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "dvars")
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'dvars', reportlets_dir, motion_outliers_combined))
 
-#perform_pca(all_tables, output_dir)
+
 #display_motion_outliers(all_tables)
 
 #output_dir = os.path.join(data_path, "report")
@@ -86,4 +89,9 @@ report_filename = generate_report_with_plots(
     tasks=all_tasks,  # Utilisez all_tasks ici
     plugin_meta={}
 )
+
+
+end_time = time.time()
+
+print(f"running time {end_time - start_time} seconds.")
 
