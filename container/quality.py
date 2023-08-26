@@ -169,23 +169,29 @@ def read_and_preprocess_data(task, all_tables, repetition_times, signal):
     return global_data, motion_outliers_list, repetition_time
 
 def plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetition_time, all_tables):
-    visibility_by_subject = []
+    visibility_by_subject = {}  # Création d'un dictionnaire vide
 
     for subject, subject_info in global_data.items():
-        visibility = [False] * len(all_tables)
-        #visibility_by_subject[subject] = []
+        visibility = [False] * len(all_tables)  # Initialement tout est caché
 
         for session, session_info in subject_info['sessions'].items():
             for task, task_info in session_info['tasks'].items():
                 for run, data_list in task_info['runs'].items():
-                    for current_table, time_indices, signal_values in data_list:
-                        visibility[current_table] = True
+                    for table, time_indices, signal_values in data_list:
                         custom_legend = f"{subject}_{session}_task-{task}_{run}"
                         new_trace = go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend)
 
-                        # Ajouter la trace et sauvegarder la couleur
                         fig.add_trace(new_trace)
                         fig_tasks.add_trace(new_trace)
+
+                        current_trace_index = len(fig.data) - 1  # Mettre à jour l'indice de la trace actuelle
+                        visibility[current_trace_index] = True
+
+        print("Nombre de traces dans fig:", len(fig.data))
+        print("Nombre de traces dans fig_tasks:", len(fig_tasks.data))
+        visibility_by_subject[subject] = visibility.copy()  # Copier la visibilité du sujet courant
+
+    return visibility_by_subject             
                         # trace_colors[custom_legend] = new_trace.line.color
 
                         # print (trace_colors[custom_legend])
@@ -206,14 +212,12 @@ def plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetitio
                         #         )
                         #         fig.add_shape(shape)
                         #         fig_tasks.add_shape(shape)
-                    visibility_by_subject.append(visibility)
 
-
-
-    return visibility_by_subject
 
 
 def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject, global_data):
+
+    #print (visibility_by_subject)
     
     fig_tasks.update_layout(
         title={
@@ -226,36 +230,6 @@ def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_
         xaxis_title='Time (seconds)',
         yaxis_title=f'{signal}',
         autosize=True
-    )
-
-    fig_tasks.update_layout(
-        sliders=[
-            {
-                'active': 0,
-                'yanchor': 'top',
-                'xanchor': 'left',
-                'currentvalue': {
-                    'font': {'size': 20},
-                    'prefix': 'Threshold:',
-                    'visible': True,
-                    'xanchor': 'right'
-                },
-                'transition': {'duration': 300, 'easing': 'cubic-in-out'},
-                'pad': {'b': 10, 't': 50},
-                'len': 0.9,
-                'x': 0.1,
-                'y': 0,
-                'steps': [{
-                    'args': [
-                        {'frame': {'duration': 300, 'redraw': True}},
-                        {'mode': 'immediate', 'transition': {'duration': 300}}
-                    ],
-                    'label': f"{round(threshold, 1)}",
-                    'method': 'animate',
-                    'value': f"{round(threshold, 1)}"
-                } for threshold in np.arange(0, 2, 0.1)]
-            }
-        ],
     )
 
 
@@ -278,16 +252,21 @@ def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_
 
     # Dropdown menu
     dropdown_buttons_all = [dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects in All Tasks', 'showlegend': True}])]
+    dropdown_buttons_tasks = [dict(label="All", method='update', args=[{'visible': [True]*len(fig_tasks.data)}, {'title': f'{signal} for All Subjects in {task}', 'showlegend': True}])]
+
+    for subject, visibility in visibility_by_subject.items():
+        dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
     
-    for i, (subject, _) in enumerate(global_data.items()):
-            dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[i]}, {'title': f'{signal} for {subject} in in All Tasks', 'showlegend': True}]))
-    
+    for subject, visibility in visibility_by_subject.items():
+        dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility}, {'title': f'{signal} for {subject} in  {task}', 'showlegend': True}]))
+    #for i, (subject, _) in enumerate(global_data.items()):
+    #        dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[i]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
     #for subject in visibility_by_subject.keys():
     #    dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[subject]}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
     
-    dropdown_buttons_tasks = [dict(label="All", method='update', args=[{'visible': [True]*len(fig_tasks.data)}, {'title': f'{signal} for All Subjects in {task}', 'showlegend': True}])]
-    for subject in visibility_by_subject.keys():
-        dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[subject]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
+    #dropdown_buttons_tasks = [dict(label="All", method='update', args=[{'visible': [True]*len(fig_tasks.data)}, {'title': f'{signal} for All Subjects in {task}', 'showlegend': True}])]
+    #for subject in visibility_by_subject.keys():
+    #    dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[subject]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
 
     fig.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
     fig_tasks.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_tasks, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
@@ -313,14 +292,14 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, motion_out
         # Vous pouvez donc simplement passer visibility_by_subject à configure_layout_and_interactivity
         configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject, global_data)
         
-        fig_name = f"desc-{signal}_signal_for_task-{task}.html"
+        fig_name = f"desc-{signal}_signal_for_all task.html"
         fig.write_html(os.path.join(output_dir, fig_name))
         
         # Si vous souhaitez sauvegarder fig_tasks
         fig_tasks_name = f"desc-{signal}_signal_tasks_for_task-{task}.html"
         fig_tasks.write_html(os.path.join(output_dir, fig_tasks_name))
 
-    return tasks  # si vous souhaitez renvoyer la liste des tâches uniques
+    return tasks 
 
 
 
@@ -500,8 +479,6 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
         ],
         )
 
-        # Specify the directory to save the file
-        output_dir = os.path.join(output_dir)
         
         # Check if the directory exists, if not create it
         if not os.path.exists(output_dir):
