@@ -277,9 +277,9 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, motion_out
     
     create_output_directory(output_dir)
     tasks = extract_unique_tasks(all_tables)
+    fig = go.Figure()
 
     for task in tasks:
-        fig = go.Figure()
         fig_tasks = go.Figure()
         global_data, motion_outliers_list, repetition_time = read_and_preprocess_data(task, all_tables, repetition_times, signal)
         
@@ -292,12 +292,11 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, motion_out
         # Vous pouvez donc simplement passer visibility_by_subject à configure_layout_and_interactivity
         configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject, global_data)
         
-        fig_name = f"desc-{signal}_signal_for_all task.html"
-        fig.write_html(os.path.join(output_dir, fig_name))
-        
         # Si vous souhaitez sauvegarder fig_tasks
         fig_tasks_name = f"desc-{signal}_signal_tasks_for_task-{task}.html"
         fig_tasks.write_html(os.path.join(output_dir, fig_tasks_name))
+    fig_name = f"desc-{signal}_signal_for_all task.html"
+    fig.write_html(os.path.join(output_dir, fig_name))
 
     return tasks 
 
