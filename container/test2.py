@@ -196,7 +196,8 @@ def detect_outliers(all_tables, repetition_times, signal_column):
 #     if not os.path.exists(output_dir):
 #         os.makedirs(output_dir)
 
-def generate_figure(all_tables, repetition_times, signal, output_dir, outlier_signal, threshold):
+
+def generate_figure(all_tables, repetition_times, signal, output_dir):
     tasks = set()
 
     # Collect unique tasks from all tables using extract_file_info function
@@ -227,11 +228,11 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, outlier_si
 
                 subjects_data[subject_name].append((table, time_indices, signal_values))
 
-                outliers = df[df[outlier_signal] > threshold]
-                outlier_indices = outliers.index.tolist()
+                #outliers = df[df[outlier_signal] > threshold]
+                #outlier_indices = outliers.index.tolist()
 
                 # Add the outliers to the figure
-                fig.add_trace(go.Scatter(x=outlier_indices, y=outliers[signal], mode='markers', marker=dict(color='red', size=5), name=f"Outliers for {subject_name}"))
+                #fig.add_trace(go.Scatter(x=outlier_indices, y=outliers[signal], mode='markers', marker=dict(color='red', size=5), name=f"Outliers for {subject_name}"))
 
 
         visibility_lists = []
@@ -277,6 +278,8 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, outlier_si
         fig.write_html(os.path.join(output_dir, fig_name))
 
     return tasks
+
+
 
 
 #     fig_name = f"desc-{signal}_signal_for_all_subjects.html"

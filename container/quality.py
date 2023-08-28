@@ -166,13 +166,15 @@ def read_and_preprocess_data(task, all_tables, repetition_times, signal):
             # Ajouter ces données au dictionnaire global
             global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run].append((table, time_indices, signal_values))
             
-    return global_data, motion_outliers_list, repetition_time
+    return global_data, motion_outliers_list, repetition_time, signal
 
-def plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetition_time, all_tables):
-    visibility_by_subject = {}  # Création d'un dictionnaire vide
+def plot_trace_data(fig, fig_tasks, global_data, signal, repetition_time, all_tables):
+    visibility_by_subject = []
+    visibility_by_subject_tasks = []  # Nouveau
 
     for subject, subject_info in global_data.items():
-        visibility = [False] * len(all_tables)  # Initialement tout est caché
+        visibility = [False] * len(all_tables)
+        visibility_tasks = [False] * len(all_tables)
 
         for session, session_info in subject_info['sessions'].items():
             for task, task_info in session_info['tasks'].items():
@@ -184,14 +186,17 @@ def plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetitio
                         fig.add_trace(new_trace)
                         fig_tasks.add_trace(new_trace)
 
-                        current_trace_index = len(fig.data) - 1  # Mettre à jour l'indice de la trace actuelle
+                        current_trace_index = len(fig.data) - 1  
                         visibility[current_trace_index] = True
 
-        print("Nombre de traces dans fig:", len(fig.data))
-        print("Nombre de traces dans fig_tasks:", len(fig_tasks.data))
-        visibility_by_subject[subject] = visibility.copy()  # Copier la visibilité du sujet courant
+                        current_trace_index_tasks = len(fig_tasks.data) - 1  # Nouveau
+                        visibility_tasks[current_trace_index_tasks] = True  # Nouveau
 
-    return visibility_by_subject             
+        visibility_by_subject.append(visibility)
+        visibility_by_subject_tasks.append(visibility_tasks)  # Nouveau
+
+    return visibility_by_subject, visibility_by_subject_tasks 
+        
                         # trace_colors[custom_legend] = new_trace.line.color
 
                         # print (trace_colors[custom_legend])
@@ -215,9 +220,8 @@ def plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetitio
 
 
 
-def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject, global_data):
+def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject, visibility_by_subject_tasks, global_data):
 
-    #print (visibility_by_subject)
     
     fig_tasks.update_layout(
         title={
@@ -254,13 +258,13 @@ def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_
     dropdown_buttons_all = [dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects in All Tasks', 'showlegend': True}])]
     dropdown_buttons_tasks = [dict(label="All", method='update', args=[{'visible': [True]*len(fig_tasks.data)}, {'title': f'{signal} for All Subjects in {task}', 'showlegend': True}])]
 
-    for subject, visibility in visibility_by_subject.items():
-        dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
+    for i, (subject, _) in enumerate(global_data.items()):
+        dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[i]}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
     
-    for subject, visibility in visibility_by_subject.items():
-        dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility}, {'title': f'{signal} for {subject} in  {task}', 'showlegend': True}]))
-    #for i, (subject, _) in enumerate(global_data.items()):
-    #        dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[i]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
+    #for subject, visibility in visibility_by_subject.items():
+    #    dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility}, {'title': f'{signal} for {subject} in  {task}', 'showlegend': True}]))
+    for i, (subject, _) in enumerate(global_data.items()):
+        dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject_tasks[i]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
     #for subject in visibility_by_subject.keys():
     #    dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject[subject]}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
     
@@ -278,25 +282,25 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, motion_out
     create_output_directory(output_dir)
     tasks = extract_unique_tasks(all_tables)
     fig = go.Figure()
+    fig_tasks = go.Figure()
 
     for task in tasks:
-        fig_tasks = go.Figure()
-        global_data, motion_outliers_list, repetition_time = read_and_preprocess_data(task, all_tables, repetition_times, signal)
+        fig_tasks = go.Figure()  # Réinitialisez fig_tasks ici
+        print(f"Generating figure for task {task} and signal {signal}")
         
+        global_data, motion_outliers_list, repetition_time, signal = read_and_preprocess_data(
+            task, all_tables, repetition_times, signal)
+        
+        visibility_by_subject, visibility_by_subject_tasks = plot_trace_data(
+            fig, fig_tasks, global_data, motion_outliers_list, repetition_time, all_tables)    
 
-        
-        # Appeler plot_trace_data pour fig et obtenir visibility_by_subject
-        visibility_by_subject = plot_trace_data(fig, fig_tasks, global_data, motion_outliers_list, repetition_time, all_tables)
-
-        # Pas besoin de calculer visibility_lists manuellement car elles sont déjà calculées dans plot_trace_data
-        # Vous pouvez donc simplement passer visibility_by_subject à configure_layout_and_interactivity
-        configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject, global_data)
-        
-        # Si vous souhaitez sauvegarder fig_tasks
-        fig_tasks_name = f"desc-{signal}_signal_tasks_for_task-{task}.html"
-        fig_tasks.write_html(os.path.join(output_dir, fig_tasks_name))
-    fig_name = f"desc-{signal}_signal_for_all task.html"
-    fig.write_html(os.path.join(output_dir, fig_name))
+        for subject, data in global_data.items():
+            configure_layout_and_interactivity(
+                fig, fig_tasks, task, signal, visibility_by_subject, visibility_by_subject_tasks, global_data)
+            
+            fig_tasks_name = f"desc-{signal}_for_task-{task}.html"
+            fig_tasks.write_html(os.path.join(output_dir, fig_tasks_name))
+    #fig.write_html(os.path.join(output_dir, fig_name))
 
     return tasks 
 
@@ -486,8 +490,8 @@ def generate_figure2(all_tables, repetition_times, signals, output_dir):
         fig_tasks_name = f"desc-{signal}_signal_for_task-{task}.html"
         fig_tasks.write_html(os.path.join(output_dir, fig_tasks_name))
 
-        fig_name = f"desc-{signal}_signal_for_all_tasks.html"
-        fig.write_html(os.path.join(output_dir, fig_name))
+    fig_name = f"desc-{signal}_signal_for_all_tasks.html"
+    fig.write_html(os.path.join(output_dir, fig_name))
     
     return tasks
 
