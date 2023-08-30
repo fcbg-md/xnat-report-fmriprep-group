@@ -86,7 +86,7 @@ report_filename = generate_report_with_plots(
     reportlets_dir=reportlets_dir,
     bootstrap_file=bootstrap_file,
     metadata=metadata,
-    tasks=all_tasks,  # Utilisez all_tasks ici
+    tasks=all_tasks,
     plugin_meta={}
 )
 

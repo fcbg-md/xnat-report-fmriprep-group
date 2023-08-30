@@ -43,13 +43,10 @@ title: Visual fmriprep report for group
 sections:
 - name: Summary
   reportlets:
-  - metadata: inline
-    settings:
-      # By default, only the first dictionary will be expanded.
-      # If folded is true, all will be folded. If false all expanded.
-      folded: true
-      # If an ID is not provided, one should be generated automatically
-      #id: 'summary-meta'
+  - bids: {datatype: figures, desc: summary, extension: [.html]}
+    caption: |
+      This section provides a brief overview of the key metrics and their significance in the context of the MRI analysis. Understanding these metrics is essential to interpret the overall quality and reliability of the results.
+    subtitle: Key Metrics Overview
     title: Visual fmriprep report by tasks
 - name: Basic confounds 
   reportlets:

@@ -41,8 +41,8 @@ all_tasks.extend(generate_figure(all_tables, repetition_times, 'global_signal', 
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "white_matter")
 # all_tasks.extend(generate_figure(all_tables, repetition_times, 'white_matter', reportlets_dir, motion_outliers_combined))
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "a_comp_cor_00")
-# all_tasks.extend(generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)) 
-# all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir)) 
+all_tasks.extend(generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)) 
+all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir)) 
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "framewise_displacement")
 # all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displacement', reportlets_dir, motion_outliers_combined))
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "std_dvars")
@@ -58,8 +58,6 @@ all_tasks.extend(generate_figure(all_tables, repetition_times, 'global_signal', 
 #output_dir = os.path.join(data_path, "report")
 #reportlets_dir = Path(output_dir) / "report" / "reportlets" / sub_id_value  / "figures"
 #reportlets_dir.mkdir(parents=True, exist_ok=True)
-
-
 
 
 bootstrap_file="./bootstrap-fmriprep.yml"
