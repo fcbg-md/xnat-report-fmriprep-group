@@ -107,7 +107,8 @@ def extract_unique_tasks(all_tables):
     return tasks
 
 def read_and_preprocess_data(task, all_tables, repetition_times, signal):
-    global_data = {}  # Dictionnaire global pour contenir toutes les informations
+    global_data = {} 
+    subject_data = {}
     motion_outliers_list = [] 
     
     
@@ -132,18 +133,15 @@ def read_and_preprocess_data(task, all_tables, repetition_times, signal):
             # Initialiser le sujet s'il n'existe pas déjà
             if subject_name not in global_data:
                 global_data[subject_name] = {'sessions': {}}
-            
-            # Initialiser la session s'il n'existe pas déjà
             if session not in global_data[subject_name]['sessions']:
                 global_data[subject_name]['sessions'][session] = {'tasks': {}}
-                
-            # Initialiser la tâche s'il n'existe pas déjà
             if task_name not in global_data[subject_name]['sessions'][session]['tasks']:
                 global_data[subject_name]['sessions'][session]['tasks'][task_name] = {'runs': {}}
-            
-            # Initialiser le run s'il n'existe pas déjà
             if run not in global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs']:
                 global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run] = []
+
+            if subject_name not in subject_data:
+                subject_data[subject_name] = []
             
             # Obtenir les données du signal
             signal_values = df[signal]
@@ -164,27 +162,18 @@ def read_and_preprocess_data(task, all_tables, repetition_times, signal):
 
             #pd.set_option('display.max_rows', None)
             
-            # Ajouter ces données au dictionnaire global
-            global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run].append((table, time_indices, signal_values))
+            if task:
+                global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run].append((table, time_indices, signal_values))
 
-    return global_data, motion_outliers_list, repetition_time, signal
+            subject_data[subject_name].append((table, time_indices, signal_values))
 
-def plot_trace_data(fig, fig_tasks, global_data, signal, repetition_time, all_tables):
-    visibility_by_subject_for_fig = []
+    return global_data, motion_outliers_list, repetition_time, signal, subject_data
+
+def plot_trace_data(fig_tasks, global_data, signal, repetition_time, all_tables):
     visibility_by_subject_for_fig_tasks = []
 
     for subject, subject_info in global_data.items():
-        visibility_for_fig = [False] * len(all_tables) 
         visibility_for_fig_tasks = [False] * len(all_tables)
-
-        new_trace = go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend)
-        fig.add_trace(new_trace)
-
-        current_trace_index = len(fig.data)
-        visibility_for_fig[current_trace_index] = True
-
-        visibility_by_subject_for_fig.append(visibility_for_fig)
-
         for session, session_info in subject_info['sessions'].items():
             for task, task_info in session_info['tasks'].items():
                 for run, data_list in task_info['runs'].items():
@@ -200,27 +189,9 @@ def plot_trace_data(fig, fig_tasks, global_data, signal, repetition_time, all_ta
         
         visibility_by_subject_for_fig_tasks.append(visibility_for_fig_tasks)
 
-
-    print(f"len(fig.data): {len(fig.data)}")
-    print(f"len(visibility_by_subject_for_fig[-1]): {len(visibility_by_subject_for_fig[-1])}")
+    return visibility_by_subject_for_fig_tasks
 
 
-
-        #print(f'Subject: {subject}')
-        #print(f'Length of all_tables: {len(all_tables)}')
-        #print(f'Length of fig.data: {len(fig.data)}')
-        #print(f'Length of visibility_by_subject_for_fig: {len(visibility_by_subject_for_fig)}')
-        #print(f'Length of fig_tasks.data: {len(fig_tasks.data)}')
-        #print(f'Length of visibility_by_subject_for_fig_tasks: {len(visibility_by_subject_for_fig_tasks)}')
-        
-        
-
-
-
-
-
-
-    return visibility_by_subject_for_fig, visibility_by_subject_for_fig_tasks
 
         
                         # trace_colors[custom_legend] = new_trace.line.color
@@ -246,7 +217,7 @@ def plot_trace_data(fig, fig_tasks, global_data, signal, repetition_time, all_ta
 
 
 
-def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_by_subject_for_fig, visibility_by_subject_for_fig_tasks, global_data):
+def configure_layout_and_interactivity(fig_tasks, task, signal, visibility_by_subject_for_fig_tasks, global_data):
 
     
     fig_tasks.update_layout(
@@ -263,34 +234,34 @@ def configure_layout_and_interactivity(fig, fig_tasks, task, signal, visibility_
     )
 
 
-    fig.update_layout(
-        title={
-            'text': f'{signal} for all tasks',
-            'y':0.95,
-            'x':0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'},
-        title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
-        xaxis_title='Time (seconds)', 
-        yaxis_title=f'{signal}', 
-        autosize=True
-    )
+    # fig.update_layout(
+    #     title={
+    #         'text': f'{signal} for all tasks',
+    #         'y':0.95,
+    #         'x':0.5,
+    #         'xanchor': 'center',
+    #         'yanchor': 'top'},
+    #     title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
+    #     xaxis_title='Time (seconds)', 
+    #     yaxis_title=f'{signal}', 
+    #     autosize=True
+    # )
 
     dropdown_buttons_all = []
     dropdown_buttons_tasks = []
 
 
     # Dropdown menu
-    dropdown_buttons_all = [dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects in All Tasks', 'showlegend': True}])]
+    #dropdown_buttons_all = [dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects in All Tasks', 'showlegend': True}])]
     dropdown_buttons_tasks = [dict(label="All", method='update', args=[{'visible': [True]*len(fig_tasks.data)}, {'title': f'{signal} for All Subjects in {task}', 'showlegend': True}])]
 
-    for i, (subject, _) in enumerate(global_data.items()):
-        dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject_for_fig[i]}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
+    #for i, (subject, _) in enumerate(global_data.items()):
+    #    dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject_for_fig[i]}, {'title': f'{signal} for {subject} in All Tasks', 'showlegend': True}]))
 
     for i, (subject, _) in enumerate(global_data.items()):
         dropdown_buttons_tasks.append(dict(label=subject, method='update', args=[{'visible': visibility_by_subject_for_fig_tasks[i]}, {'title': f'{signal} for {subject} in {task}', 'showlegend': True}]))
 
-    fig.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
+    #fig.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
     fig_tasks.update_layout(hoverlabel_namelength=-1, updatemenus=[dict(active=0, buttons=dropdown_buttons_tasks, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
 
 def generate_figure(all_tables, repetition_times, signal, output_dir, motion_outliers_list):
@@ -299,37 +270,100 @@ def generate_figure(all_tables, repetition_times, signal, output_dir, motion_out
     
     create_output_directory(output_dir)
     tasks = extract_unique_tasks(all_tables)
-    
-    fig = go.Figure()
-    global_data, motion_outliers_list, repetition_time, signal = read_and_preprocess_data(
-            tasks, all_tables, repetition_times, signal)
-        
-
-    for subject, data in global_data.items():
-            configure_layout_and_interactivity(
-                fig, fig_tasks, tasks, signal, visibility_by_subject_for_fig, visibility_by_subject_for_fig_tasks, global_data)
 
     for task in tasks:
         fig_tasks = go.Figure()
         
-        global_data, motion_outliers_list, repetition_time, signal = read_and_preprocess_data(
+        global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(
             task, all_tables, repetition_times, signal)
         
-        visibility_by_subject_for_fig, visibility_by_subject_for_fig_tasks = plot_trace_data(
-            fig, fig_tasks, global_data, motion_outliers_list, repetition_time, all_tables)    
+        visibility_by_subject_for_fig_task  = plot_trace_data(
+            fig_tasks, global_data, signal, repetition_time, all_tables)    
 
         for subject, data in global_data.items():
             configure_layout_and_interactivity(
-                fig, fig_tasks, task, signal, visibility_by_subject_for_fig, visibility_by_subject_for_fig_tasks, global_data)
+                fig_tasks, task, signal, visibility_by_subject_for_fig_task, global_data)
             
             fig_tasks_name = f"desc-{signal}_for_task-{task}.html"
             fig_tasks.write_html(os.path.join(output_dir, fig_tasks_name))
         
-    fig_name = f"desc-{signal}_for_all_tasks.html"
-    fig.write_html(os.path.join(output_dir, fig_name))
+    #fig_name = f"desc-{signal}_for_all_tasks.html"
+    #fig.write_html(os.path.join(output_dir, fig_name))
     #fig.write_html(os.path.join(output_dir, fig_name))
 
     return tasks 
+
+
+
+def generate_figure_all(all_tables, repetition_times, signal, output_dir):
+
+    # Collect unique tasks from all tables using extract_file_info function
+    for table in all_tables:
+        file_info = extract_file_info(os.path.basename(table).split('.')[0])
+
+
+        fig = go.Figure()
+        subjects_data = {}
+        
+        for table, repetition_time in zip(all_tables, repetition_times):
+            df = pd.read_csv(table, sep='\t')
+            
+            file_info = extract_file_info(os.path.basename(table).split('.')[0])
+
+
+            if signal in df.columns:
+                file_name = os.path.basename(table).split('.')[0]
+                subject_name = file_name.split('_')[0]
+
+                signal_values = df[signal]
+                time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+
+                if subject_name not in subjects_data:
+                    subjects_data[subject_name] = []
+
+                subjects_data[subject_name].append((table, time_indices, signal_values))
+
+        visibility_lists = []
+
+        fig.update_layout(
+            title={
+                'text': f'{signal} for all_table',
+                'y':0.95,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'},
+            title_font=dict(size=24, color='rgb(107, 107, 107)', family="Courier New, monospace"),
+            xaxis_title='Time (seconds)', 
+            yaxis_title=f'{signal}', 
+            autosize=True
+        )
+
+        for subject, data_list in subjects_data.items():
+            visibility = [False] * len(all_tables)
+
+            for current_table, time_indices, signal_values in data_list:
+                file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
+                custom_legend = f"{subject}_ses-{file_info.get('ses', 'N/A')}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
+                
+                fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
+                current_trace_index = len(fig.data) - 1
+                visibility[current_trace_index] = True
+
+            visibility_lists.append(visibility)
+
+        # Dropdown menu
+        dropdown_buttons = [dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects in all_table', 'showlegend': True}])]
+        
+        for i, (subject, _) in enumerate(subjects_data.items()):
+            dropdown_buttons.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{signal} for {subject} in all_table', 'showlegend': True}]))
+        
+        fig.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
+        
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        fig_name = f"desc-{signal}_for_all_tasks.html"
+        fig.write_html(os.path.join(output_dir, fig_name))
 
 
 

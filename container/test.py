@@ -31,11 +31,11 @@ print(os.path.exists(reportlets_dir))
 
 tasks = extract_unique_tasks(all_tables)
 
-
 all_tasks = []
 
-global_data, motion_outliers_list, repetition_time, signal = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
+global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
 all_tasks.extend(generate_figure(all_tables, repetition_times, 'global_signal', reportlets_dir, motion_outliers_list))
+#generate_figure_all(all_tables, repetition_times, 'global_signal', reportlets_dir)
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "csf")
 # all_tasks.extend(generate_figure(all_tables, repetition_times, 'csf', reportlets_dir, motion_outliers_combined))
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "white_matter")
