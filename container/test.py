@@ -3,7 +3,7 @@ import time
 
 start_time = time.time()
 
-from quality import generate_figure2, extract_unique_tasks, generate_figure_all
+from quality import generate_figure2, extract_unique_tasks
 from quality import get_bids_data, generate_report_with_plots, generate_figure
 import uuid
 import os

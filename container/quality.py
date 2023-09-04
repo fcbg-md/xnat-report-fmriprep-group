@@ -8,6 +8,7 @@ from bids import BIDSLayout
 import json
 from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
+import random
 
 
 # def bids_subjects(bids_directory: str):
@@ -293,7 +294,11 @@ def extract_unique_tasks(all_tables):
 
 #     return tasks 
 
+def generate_unique_color():
+    return f'rgb({random.randint(0, 200)},{random.randint(0, 200)},{random.randint(0, 200)})'
+
 def generate_figure(all_tables, repetition_times, signal, output_dir):
+    task_colors = {}
     tasks = set()
     fig_all = go.Figure()  # Figure pour toutes les courbes
 
@@ -340,12 +345,17 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
 
                 custom_legend = f"{current_subject_name} - {current_session} - {current_task_name} - {current_run}"
 
+                if current_task_name not in task_colors:
+                    task_colors[current_task_name] = generate_unique_color()
+                
+                color = task_colors.get(current_task_name) 
+
                 file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
         
                 if file_info.get('task') == task: 
                     fig_task.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
 
-                fig_all.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend)) 
+                fig_all.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend, line=dict(color=color)))
 
                 current_trace_index_task = len(fig_task.data) - 1
                 current_trace_index_all = len(fig_all.data) - 1
@@ -421,120 +431,6 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
 
     
 
-
-def generate_figure_all(all_tables, repetition_times, signal, output_dir):
-
-    # Collect unique tasks from all tables using extract_file_info function
-    for table in all_tables:
-
-
-        fig = go.Figure()
-        subject_data = {}
-        global_data = {} 
-        
-        for table, repetition_time in zip(all_tables, repetition_times):
-            df = pd.read_csv(table, sep='\t')
-            
-            file_info = extract_file_info(os.path.basename(table).split('.')[0])
-
-
-            if signal in df.columns:
-                subject_name = os.path.basename(table).split('_')[0]
-                task_name = file_info['task']
-                session = os.path.basename(table).split('_')[1]
-                run = os.path.basename(table).split('_')[3]
-                
-                # Initialiser le sujet s'il n'existe pas déjà
-                if subject_name not in global_data:
-                    global_data[subject_name] = {'sessions': {}}
-                if session not in global_data[subject_name]['sessions']:
-                    global_data[subject_name]['sessions'][session] = {'tasks': {}}
-                if task_name not in global_data[subject_name]['sessions'][session]['tasks']:
-                    global_data[subject_name]['sessions'][session]['tasks'][task_name] = {'runs': {}}
-                if run not in global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs']:
-                    global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run] = []
-
-                if subject_name not in subject_data:
-                    subject_data[subject_name] = []
-                
-                # Obtenir les données du signal
-                signal_values = df[signal]
-                time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
-
-                if subject_name not in subject_data:
-                    subject_data[subject_name] = []
-
-                subject_data[subject_name].append((table, time_indices, signal_values))
-
-        
-
-
-                # motion_outliers_columns = [col for col in df.columns if 'motion_outlier' in col]
-
-
-                # # Somme logique le long de l'axe des colonnes
-                # df['motion_outliers_combined'] = df[motion_outliers_columns].sum(axis=1)
-
-                # # Convertir toute valeur >1 à 1
-                # motion_outliers_combined_binary= df['motion_outliers_combined'] = df['motion_outliers_combined'].apply(lambda x: 1 if x >= 1 else 0)
-
-                # motion_outliers_list = motion_outliers_combined_binary.tolist()
-                # motion_outliers_list = [int(item) for item in motion_outliers_list]
-
-                #pd.set_option('display.max_rows', None)
-                
-
-                global_data[subject_name]['sessions'][session]['tasks'][task_name]['runs'][run].append((table, time_indices, signal_values))
-
-        visibility_lists = []
-
-        fig.update_layout(
-            hoverlabel_namelength=-1,
-            title={
-                'text': f'{signal} for all_table',
-                'y':0.95,
-                'x':0.5,
-                'xanchor': 'center',
-                'yanchor': 'top'},
-            title_font=dict(size=24, color='rgb(107, 107, 107)', family="Courier New, monospace"),
-            xaxis_title='Time (seconds)', 
-            yaxis_title=f'{signal}', 
-            autosize=True
-        )
-
-        for subject, subject_info in global_data.items():
-            visibility = [False] * len(all_tables)
-
-            #for current_table, time_indices, signal_values in data_list:
-             #   file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
-            for session, session_info in subject_info['sessions'].items():
-                for task, task_info in session_info['tasks'].items():
-                    for run, data_list in task_info['runs'].items():
-                        for table, time_indices, signal_values in data_list:
-                            custom_legend = f"{subject}_{session}_task-{task}_{run}"
-                   # custom_legend = f"{subject}_ses-{file_info.get('ses', 'N/A')}_task-{file_info.get('task', 'N/A')}_run-{file_info.get('run', 'N/A')}"
-                
-                            fig.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
-                            current_trace_index = len(fig.data) - 1
-                            visibility[current_trace_index] = True
-
-                        visibility_lists.append(visibility)
-
-        
-
-        # Dropdown menu
-        dropdown_buttons = [dict(label="All", method='update', args=[{'visible': [True]*len(fig.data)}, {'title': f'{signal} for All Subjects in all_table', 'showlegend': True}])]
-        
-        for i, (subject, _) in enumerate(subject_data.items()):
-            dropdown_buttons.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{signal} for {subject} in all_table', 'showlegend': True}]))
-        
-        fig.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
-        
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        fig_name = f"desc-{signal}_for_all_tasks.html"
-        fig.write_html(os.path.join(output_dir, fig_name))
 
 
 
