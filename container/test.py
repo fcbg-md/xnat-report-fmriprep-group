@@ -3,8 +3,8 @@ import time
 
 start_time = time.time()
 
-from quality import generate_figure2, extract_unique_tasks
-from quality import get_bids_data, generate_report_with_plots, generate_figure, read_and_preprocess_data
+from quality import generate_figure2, extract_unique_tasks, generate_figure_all
+from quality import get_bids_data, generate_report_with_plots, generate_figure
 import uuid
 import os
 import pandas as pd
@@ -33,8 +33,9 @@ tasks = extract_unique_tasks(all_tables)
 
 all_tasks = []
 
-global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
-all_tasks.extend(generate_figure(all_tables, repetition_times, 'global_signal', reportlets_dir, motion_outliers_list))
+#global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
+#generate_figure_all(all_tables, repetition_times, 'global_signal', reportlets_dir)
+generate_figure(all_tables, repetition_times, 'csf', reportlets_dir)    
 #generate_figure_all(all_tables, repetition_times, 'global_signal', reportlets_dir)
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "csf")
 # all_tasks.extend(generate_figure(all_tables, repetition_times, 'csf', reportlets_dir, motion_outliers_combined))
@@ -76,17 +77,18 @@ metadata={
 # for file in files:
 #     entities.update(file.get_entities())
 
-report_dir=output_dir
 
 report_filename = generate_report_with_plots(
-    output_dir=report_dir,
+    output_dir=output_dir,
     run_uuid=uuid.uuid4(), 
     reportlets_dir=reportlets_dir,
     bootstrap_file=bootstrap_file,
     metadata=metadata,
-    tasks=all_tasks,  # Utilisez all_tasks ici
+    tasks=all_tasks,
     plugin_meta={}
 )
+
+print(f"Report generated in {report_filename}")
 
 
 end_time = time.time()
