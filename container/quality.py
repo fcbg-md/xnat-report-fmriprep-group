@@ -122,6 +122,8 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
 
                 subject_data[subject_name].append((table, time_indices, signal_values))
+                motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+
 
         visibility_lists = []
         visibility_all_lists = []
@@ -158,11 +160,37 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 current_trace_index_task = len(fig_task.data) - 1
                 current_trace_index_all = len(fig_all.data) - 1
 
-                # Mise à jour de la visibilité pour fig_task
-                if current_trace_index_task >= len(visibility):
-                    extend_length = (current_trace_index_task - len(visibility) + 1)
-                    visibility.extend([False] * extend_length)
-                visibility[current_trace_index_task] = True
+
+                motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+                
+                for outlier_col in motion_outliers:
+                    print(f"Before padding: Length of time_indices: {len(time_indices)}, Length of {outlier_col}: {len(df[outlier_col])}")
+
+                    if len(df[outlier_col]) < len(time_indices):
+                        new_data = pd.Series(np.zeros(len(time_indices) - len(df[outlier_col])))
+                        df[outlier_col] = pd.concat([df[outlier_col], new_data]).reset_index(drop=True)
+                        df[outlier_col] = df[outlier_col].astype(int)  # if the column is supposed to hold integers
+                    
+                    print(f"After padding: Length of time_indices: {len(time_indices)}, Length of {outlier_col}: {len(df[outlier_col])}")
+
+                    outlier_time_indices = []  # Initialize to avoid UnboundLocalError
+                    try:
+                        outlier_time_indices = time_indices[df[outlier_col] == 1]
+                    except IndexError as e:
+                        print(f"IndexError: {e}")
+                                
+                    # Ici, je suggère d'utiliser le maximum des valeurs de signal pour la hauteur
+                    max_signal_value = max(signal_values)
+
+                    if file_info.get('task') == task:
+                        fig_task.add_trace(go.Scatter(x=outlier_time_indices, y=[max_signal_value] * len(outlier_time_indices), mode='markers', marker=dict(color='red', symbol='x')))
+            
+                    # Mise à jour de la visibilité pour fig_task
+                    current_trace_index_task = len(fig_task.data) - 1
+                    if current_trace_index_task >= len(visibility):
+                        extend_length = (current_trace_index_task - len(visibility) + 1)
+                        visibility.extend([False] * extend_length)
+                    visibility[current_trace_index_task] = True
 
                 # Mise à jour de la visibilité pour fig_all
                 if current_trace_index_all >= len(visibility_all):

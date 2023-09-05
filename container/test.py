@@ -11,11 +11,11 @@ import pandas as pd
 from pathlib import Path
 import argparse
 
-data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
-output_dir="/home/axel/Test2/bids_fmriprep_10subj/report"
+#data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
+#output_dir="/home/axel/Test2/bids_fmriprep_10subj/report"
 
-#data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
-#output_dir=os.path.join(data_path, "report")
+data_path = "/home/axel/Test2/bids_fmriprep_1subj/"
+output_dir=os.path.join(data_path, "report")
 
 # parser = argparse.ArgumentParser(description='Process data_path for the script.')
 # parser.add_argument('data_path', type=str, help='Path to the data')
