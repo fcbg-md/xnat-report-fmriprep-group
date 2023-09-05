@@ -61,10 +61,10 @@ sections:
     subtitle: White matter signal
 - name: Motion data
   reportlets:
-  - bids: {datatype: figures, desc: trans, extension: [.html]}
+  - bids: {datatype: figures, desc: Translation, extension: [.html]}
     caption: the translation parameters
     subtitle: Translation parameters
-  - bids: {datatype: figures, desc: rot, extension: [.html]}
+  - bids: {datatype: figures, desc: Rotation, extension: [.html]}
     caption: the rotation parameters
     subtitle: Rotation parameters
 - name: Outlier detection

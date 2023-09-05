@@ -3,8 +3,8 @@ import time
 
 start_time = time.time()
 
-from quality import generate_figure2, extract_unique_tasks
-from quality import get_bids_data, generate_report_with_plots, generate_figure
+from quality import extract_unique_tasks, display_motion_outliers
+from quality import get_bids_data, generate_report_with_plots, generate_figure, generate_figures_motion
 import uuid
 import os
 import pandas as pd
@@ -33,6 +33,8 @@ tasks = extract_unique_tasks(all_tables)
 
 all_tasks = []
 
+#display_motion_outliers(all_tables)
+
 #global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
 #generate_figure_all(all_tables, repetition_times, 'global_signal', reportlets_dir)
 generate_figure(all_tables, repetition_times, 'csf', reportlets_dir)    
@@ -42,7 +44,7 @@ generate_figure(all_tables, repetition_times, 'csf', reportlets_dir)
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "white_matter")
 # all_tasks.extend(generate_figure(all_tables, repetition_times, 'white_matter', reportlets_dir, motion_outliers_combined))
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "a_comp_cor_00")
-#all_tasks.extend(generate_figure2(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)) 
+#generate_figures_motion(all_tables, repetition_times, ['rot_x', 'rot_y', 'rot_z'], reportlets_dir)
 #all_tasks.extend(generate_figure2(all_tables, repetition_times, ['trans_x', 'trans_y', 'trans_z'], reportlets_dir)) 
 # global_data, motion_outliers_combined, repetition_time = read_and_preprocess_data(tasks, all_tables, repetition_times, "framewise_displacement")
 # all_tasks.extend(generate_figure(all_tables, repetition_times, 'framewise_displacement', reportlets_dir, motion_outliers_combined))
