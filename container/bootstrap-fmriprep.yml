@@ -50,37 +50,64 @@ sections:
     title: Visual fmriprep report by tasks
 - name: Basic confounds 
   reportlets:
-  - bids: {datatype: figures, desc: global, extension: [.html]}
+  - bids: {datatype: figures, desc: allglobal, extension: [.html]}
     caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
-    subtitle: Global signal
-  - bids: {datatype: figures, desc: csf, extension: [.html]}
+    subtitle: Global signal for all tasks
+  - bids: {datatype: figures, desc: tasksglobal, extension: [.html]}
+    caption:
+    subtitle: Global signal for each tasks
+  - bids: {datatype: figures, desc: allcsf, extension: [.html]}
     caption: This metric represents the average signal within the anatomically-derived eroded cerebrospinal fluid (CSF) mask. A stable signal here can help ensure that CSF fluctuations aren't confounding the neural signals of interest.
-    subtitle: CSF signal
-  - bids: {datatype: figures, desc: white, extension: [.html]}
+    subtitle: CSF signal for all tasks
+  - bids: {datatype: figures, desc: taskscsf, extension: [.html]}
+    caption: 
+    subtitle: CSF signal for each tasks
+  - bids: {datatype: figures, desc: allwhite, extension: [.html]}
     caption: The average signal within the anatomically-derived eroded white matter mask provides insights into the integrity and quality of white matter regions.
-    subtitle: White matter signal
+    subtitle: White matter signal for all tasks
+  - bids: {datatype: figures, desc: taskswhite, extension: [.html]}
+    caption: 
+    subtitle: White matter signal for each tasks
 - name: Motion data
   reportlets:
-  - bids: {datatype: figures, desc: Translation, extension: [.html]}
-    caption: the translation parameters
-    subtitle: Translation parameters
-  - bids: {datatype: figures, desc: Rotation, extension: [.html]}
-    caption: the rotation parameters
-    subtitle: Rotation parameters
+  - bids: {datatype: figures, desc: allTranslation, extension: [.html]}
+    caption: the translation parameters for all tasks
+    subtitle: Translation parameters for all tasks
+  - bids: {datatype: figures, desc: tasksTranslation, extension: [.html]}
+    caption: 
+    subtitle: Translation parameters for each tasks
+  - bids: {datatype: figures, desc: allRotation, extension: [.html]}
+    caption: the rotation parameters for all tasks
+    subtitle: Rotation parameters for all tasks
+  - bids: {datatype: figures, desc: tasksRotation, extension: [.html]}
+    caption: 
+    subtitle: Rotation parameters for each tasks
 - name: Outlier detection
   reportlets:
-  - bids: {datatype: figures, desc: framewise, extension: [.html]}
-    caption: the framewise displacement
-    subtitle: Framewise displacement
-  - bids: {datatype: figures, desc: std, extension: [.html]}
-    caption: the standardized dvars
-    subtitle: Standardized DVARS
-  - bids: {datatype: figures, desc: dvars, extension: [.html]}
-    caption: the dvars
-    subtitle: DVARS
-  - bids: {datatype: figures, desc: rmsd, extension: [.html]}
-    caption: the root mean square displacement
-    subtitle:   Root mean square displacement
+  - bids: {datatype: figures, desc: allframewise, extension: [.html]}
+    caption: the framewise displacement for all tasks
+    subtitle: Framewise displacement for all tasks
+  - bids: {datatype: figures, desc: tasksframewise, extension: [.html]}
+    caption: 
+    subtitle: Framewise displacement for each tasks
+  - bids: {datatype: figures, desc: allstd, extension: [.html]}
+    caption: the standardized dvars for all tasks
+    subtitle: Standardized DVARS for all tasks
+  - bids: {datatype: figures, desc: tasksstd, extension: [.html]}
+    caption: 
+    subtitle: Standardized DVARS for each tasks
+  - bids: {datatype: figures, desc: alldvars, extension: [.html]}
+    caption: the dvars for all tasks
+    subtitle: DVARS for all tasks
+  - bids: {datatype: figures, desc: tasksdvars, extension: [.html]}
+    caption: 
+    subtitle: DVARS for each tasks
+  - bids: {datatype: figures, desc: allrmsd, extension: [.html]}
+    caption: the root mean square displacement for all tasks
+    subtitle:   Root mean square displacement for all tasks
+  - bids: {datatype: figures, desc: tasksrmsd, extension: [.html]}
+    caption: 
+    subtitle: Root mean square displacement for each tasks
 
     
 # - name: Extended visual report

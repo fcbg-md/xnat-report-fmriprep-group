@@ -220,11 +220,11 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        fig_name = f"desc-{signal}_signal_for_task-{task}.html"
+        fig_name = f"desc-tasks{signal}_signal_for_task-{task}.html"
         fig_task.write_html(os.path.join(output_dir, fig_name))
             
         # Sauvegardez fig_all
-    fig_all_name = f"desc-{signal}_signal_for_all_tasks.html"
+    fig_all_name = f"desc-all{signal}_signal_for_all_tasks.html"
     fig_all.write_html(os.path.join(output_dir, fig_all_name))
 
 
