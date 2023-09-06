@@ -80,6 +80,10 @@ def create_output_directory(output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+from itertools import cycle
+import plotly.express as px
+
+
 def extract_unique_tasks(all_tables):
     tasks = set()
     for table in all_tables:
@@ -87,27 +91,30 @@ def extract_unique_tasks(all_tables):
         tasks.add(file_info.get('task', 'N/A'))
     return tasks
 
-import colorsys
 
-def generate_unique_colors(n):
-    # Génère n couleurs maximisant leur distance dans l'espace des teintes
-    colors = [colorsys.hsv_to_rgb(i / float(n), 1, 1) for i in range(n)]
-    # Convertit les couleurs en format RGB pour Plotly
-    colors = [f'rgb({int(r * 200)}, {int(g * 200)}, {int(b * 200)})' for r, g, b in colors]
-    return colors
+def generate_divergent_colors(n):
+    turbo_colors = px.colors.cyclical.HSV
+    step = len(turbo_colors) // n
+    return [turbo_colors[i] for i in range(0, len(turbo_colors), step)][:n]
+
+
+def distribute_colors(palette, n):
+    step = len(palette) // n
+    return [palette[i * step] for i in range(n)]
 
 def generate_figure(all_tables, repetition_times, signal, output_dir):
-    task_colors = {}
     tasks = set()
-    fig_all = go.Figure()  # Figure pour toutes les courbes
+    fig_all = go.Figure() 
 
     for table in all_tables:
         file_info = extract_file_info(os.path.basename(table).split('.')[0])
         tasks.add(file_info.get('task', 'N/A'))
 
+
     for task in tasks:
         fig_task = go.Figure()
         subject_data = {}
+
         
         for table, repetition_time in zip(all_tables, repetition_times):
             df = pd.read_csv(table, sep='\t')
@@ -121,39 +128,50 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 signal_values = df[signal]
                 time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
 
-                subject_data[subject_name].append((table, time_indices, signal_values))
+                motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+                subject_data[subject_name].append((table, time_indices, signal_values, motion_outliers))
 
         visibility_lists = []
         visibility_all_lists = []
         
         for subject, data_list in subject_data.items():
             visibility = [False] * len(all_tables)
-            visibility_all = [False] * len(all_tables)  # Initialiser une nouvelle liste de visibilité pour fig_all
+            visibility_all = [False] * len(all_tables)
+
+            colors = generate_divergent_colors(len(all_tables))
             
 
-            for current_table, time_indices, signal_values in data_list:
+            for i, (current_table, time_indices, signal_values, motion_outliers) in enumerate(data_list):
                 file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
                 current_subject_name = os.path.basename(current_table).split('_')[0]
                 current_session = os.path.basename(current_table).split('_')[1]
                 current_task_name = file_info.get('task')
                 current_run = os.path.basename(current_table).split('_')[3]
 
+
                 custom_legend = f"{current_subject_name} - {current_session} - {current_task_name} - {current_run}"
 
-                unique_task_count = len(tasks)
-                unique_colors = generate_unique_colors(unique_task_count)
+                color = colors[i]
 
-                if current_task_name not in task_colors:
-                    task_colors = {task: color for task, color in zip(tasks, unique_colors)}
-                
-                color = task_colors.get(current_task_name) 
 
                 file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
-        
-                if file_info.get('task') == task: 
-                    fig_task.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend))
 
-                fig_all.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend, line=dict(color=color)))
+                palette_cycle = cycle([px.colors.sequential.Plasma, px.colors.sequential.Viridis, px.colors.sequential.Inferno, px.colors.sequential.Magma])
+                task_info = {}
+
+                if current_task_name not in task_info:
+                    task_info[current_task_name] = {'palette': next(palette_cycle), 'num_traces': 0}
+                num_traces = task_info[current_task_name]['num_traces']
+                palette = task_info[current_task_name]['palette']
+                colors_for_task = distribute_colors(palette, num_traces + 1)
+
+                colortasks = colors_for_task[-1]
+                task_info[current_task_name]['num_traces'] += 1
+
+                if file_info.get('task') == task: 
+                    fig_task.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend, line=dict(color=color)))
+
+                fig_all.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend, line=dict(color=colortasks)))
 
                 current_trace_index_task = len(fig_task.data) - 1
                 current_trace_index_all = len(fig_all.data) - 1
@@ -165,6 +183,27 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 visibility[current_trace_index_task] = True
 
                 # Mise à jour de la visibilité pour fig_all
+                if current_trace_index_all >= len(visibility_all):
+                    extend_length = (current_trace_index_all - len(visibility_all) + 1)
+                    visibility_all.extend([False] * extend_length)
+                visibility_all[current_trace_index_all] = True
+
+        
+                df_current = pd.read_csv(current_table, sep='\t')
+                for motion_outlier in motion_outliers:
+                    if motion_outlier in df_current.columns:
+                        outlier_indices = np.where(df_current[motion_outlier] == 1)[0]
+                        outlier_times = time_indices[outlier_indices]
+                        y_values = np.array([np.nan]*len(time_indices))
+                        y_values[outlier_indices] = signal_values[outlier_indices]
+
+                        fig_task.add_trace(go.Scatter(x=time_indices, y=y_values, mode='markers', name=f"{custom_legend} - {motion_outlier}", showlegend=False, marker=dict(color=color, size=8)))
+
+                if current_trace_index_task >= len(visibility):
+                    extend_length = (current_trace_index_task - len(visibility) + 1)
+                    visibility.extend([False] * extend_length)
+                visibility[current_trace_index_task] = True
+
                 if current_trace_index_all >= len(visibility_all):
                     extend_length = (current_trace_index_all - len(visibility_all) + 1)
                     visibility_all.extend([False] * extend_length)
@@ -192,7 +231,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
             title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
             xaxis_title='Time (seconds)', 
             yaxis_title=f'{yaxis_title}', 
-            autosize=True
+            autosize=True  
         )
 
         fig_all.update_layout(
@@ -357,21 +396,6 @@ def generate_figures_motion(all_tables, repetition_times, signals, output_dir):
     fig_all.write_html(os.path.join(output_dir, fig_all_name))
 
 
-
-def display_motion_outliers(all_files):
-    # Loop over all files in the list
-    for filepath in all_files:
-        # Read the file into a pandas DataFrame
-        df = pd.read_csv(filepath, sep='\t')
-
-        # Filter the DataFrame for columns that start with 'motion_outlier'
-        motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
-
-        # Display each motion outlier column
-        for outlier in motion_outliers:
-            print(f"{outlier}:\n")
-            print(df[outlier])
-            print("\n")
 
 
 def generate_report_with_plots(
