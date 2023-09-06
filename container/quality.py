@@ -173,6 +173,13 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
             visibility_lists.append(visibility)
             visibility_all_lists.append(visibility_all)
 
+        yaxis_title = signal
+
+        if signal == 'framewise_displacement':
+            yaxis_title = 'FD (mm)'
+        elif signal == 'std_dvars':
+            yaxis_title = 'Standardized DVARS'
+
 
         fig_task.update_layout(
             hoverlabel_namelength=-1,
@@ -184,7 +191,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 'yanchor': 'top'},
             title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
             xaxis_title='Time (seconds)', 
-            yaxis_title=f'{signal}', 
+            yaxis_title=f'{yaxis_title}', 
             autosize=True
         )
 
@@ -343,10 +350,10 @@ def generate_figures_motion(all_tables, repetition_times, signals, output_dir):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        fig_name = f"desc-{display_sinal} _for_task-{task}.html"
+        fig_name = f"desc-tasks{display_sinal} _for_task-{task}.html"
         fig_task.write_html(os.path.join(output_dir, fig_name))
 
-    fig_all_name = f"desc-{display_sinal} _for_all_tasks.html"
+    fig_all_name = f"desc-all{display_sinal} _for_all_tasks.html"
     fig_all.write_html(os.path.join(output_dir, fig_all_name))
 
 
