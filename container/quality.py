@@ -87,14 +87,13 @@ def extract_unique_tasks(all_tables):
         tasks.add(file_info.get('task', 'N/A'))
     return tasks
 
-import colorsys
+import plotly.express as px
 
-def generate_unique_colors(n):
-    # Génère n couleurs maximisant leur distance dans l'espace des teintes
-    colors = [colorsys.hsv_to_rgb(i / float(n), 1, 1) for i in range(n)]
-    # Convertit les couleurs en format RGB pour Plotly
-    colors = [f'rgb({int(r * 200)}, {int(g * 200)}, {int(b * 200)})' for r, g, b in colors]
-    return colors
+def generate_divergent_colors(n):
+    turbo_colors = px.colors.cyclical.HSV
+    step = max(1, len(turbo_colors) // n)
+    colors = [turbo_colors[i % len(turbo_colors)] for i in range(0, n * step, step)]
+    return colors[:n]
 
 def generate_figure(all_tables, repetition_times, signal, output_dir):
     task_colors = {}
@@ -141,7 +140,7 @@ def generate_figure(all_tables, repetition_times, signal, output_dir):
                 custom_legend = f"{current_subject_name} - {current_session} - {current_task_name} - {current_run}"
 
                 unique_task_count = len(tasks)
-                unique_colors = generate_unique_colors(unique_task_count)
+                unique_colors = generate_divergent_colors(unique_task_count)
 
                 if current_task_name not in task_colors:
                     task_colors = {task: color for task, color in zip(tasks, unique_colors)}
@@ -358,20 +357,104 @@ def generate_figures_motion(all_tables, repetition_times, signals, output_dir):
 
 
 
-def display_motion_outliers(all_files):
+def display_motion_outliers(all_tables, repetition_times, output_dir):
     # Loop over all files in the list
-    for filepath in all_files:
-        # Read the file into a pandas DataFrame
-        df = pd.read_csv(filepath, sep='\t')
+    task_colors = {}
+    tasks = set()
+    fig_all = go.Figure()
 
-        # Filter the DataFrame for columns that start with 'motion_outlier'
-        motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+    for table in all_tables:
+        file_info = extract_file_info(os.path.basename(table).split('.')[0])
+        tasks.add(file_info.get('task', 'N/A'))
 
-        # Display each motion outlier column
-        for outlier in motion_outliers:
-            print(f"{outlier}:\n")
-            print(df[outlier])
-            print("\n")
+
+    subject_data = {}
+
+    for table, repetition_time in zip(all_tables, repetition_times):
+            df = pd.read_csv(table, sep='\t')
+            file_info = extract_file_info(os.path.basename(table).split('.')[0])
+
+            motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+
+            
+            subject_name = os.path.basename(table).split('_')[0]
+            if subject_name not in subject_data:
+                subject_data[subject_name] = []
+            
+            signal_values = df[motion_outliers]
+            time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
+
+            subject_data[subject_name].append((table, time_indices, signal_values))
+
+                
+    visibility_lists = []
+
+    for subject, data_list in subject_data.items():
+            visibility = [False] * len(all_tables)
+            visibility_all = [False] * len(all_tables)  # Initialiser une nouvelle liste de visibilité pour fig_all
+            
+
+            for current_table, time_indices, signal_values in data_list:
+                file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
+                current_subject_name = os.path.basename(current_table).split('_')[0]
+                current_session = os.path.basename(current_table).split('_')[1]
+                current_task_name = file_info.get('task')
+                current_run = os.path.basename(current_table).split('_')[3]
+
+                custom_legend = f"outlier of {current_subject_name} - {current_session} - {current_task_name} - {current_run}"
+
+                unique_task_count = len(tasks)
+                unique_colors = generate_divergent_colors(unique_task_count)
+
+                if current_task_name not in task_colors:
+                    task_colors = {task: color for task, color in zip(tasks, unique_colors)}
+                
+                color = task_colors.get(current_task_name) 
+
+                file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
+        
+                fig_all.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend, line=dict(color=color)))
+
+
+                current_trace_index_all = len(fig_all.data) - 1
+
+                # Mise à jour de la visibilité pour fig_all
+                if current_trace_index_all >= len(visibility_all):
+                    extend_length = (current_trace_index_all - len(visibility_all) + 1)
+                    visibility_all.extend([False] * extend_length)
+                visibility_all[current_trace_index_all] = True
+
+            visibility_lists.append(visibility)
+
+    fig_all.update_layout(
+    hoverlabel_namelength=-1,
+    title={
+        'text': f'{motion_outliers} for all tasks',
+        'y':0.95,
+        'x':0.5,
+        'xanchor': 'center',
+        'yanchor': 'top'},
+    title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
+    xaxis_title='Time (seconds)', 
+    yaxis_title=f'{motion_outliers}', 
+    autosize=True
+)
+
+    # Dropdown menu
+    dropdown_buttons_all = [dict(label="All subjects", method='update', args=[{'visible': [True]*len(fig_all.data)}, {'title': f'{motion_outliers} for All Subjects', 'showlegend': True}])]
+    
+    for i, (subject, _) in enumerate(subject_data.items()):
+        dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{motion_outliers} for {subject} in all tasks', 'showlegend': True}]))
+    
+    fig_all.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+            
+        # Sauvegardez fig_all
+    fig_all_name = f"desc-outliers_for_all_tasks.html"
+    fig_all.write_html(os.path.join(output_dir, fig_all_name))
+        
 
 
 def generate_report_with_plots(
