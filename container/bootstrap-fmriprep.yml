@@ -108,6 +108,13 @@ sections:
   - bids: {datatype: figures, desc: tasksrmsd, extension: [.html]}
     caption: 
     subtitle: Root mean square displacement for each tasks
+- name: Outliers 
+  reportlets:
+  - bids: {datatype: figures, desc: outliers, extension: [.html]}
+    caption: the outliers for all tasks
+    subtitle: All Outliers
+
+
 
     
 # - name: Extended visual report

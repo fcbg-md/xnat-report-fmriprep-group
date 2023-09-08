@@ -9,7 +9,6 @@ import json
 from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
 import random
-from collections import defaultdict
 
 
 def get_bids_data(data_path):
@@ -357,41 +356,38 @@ def generate_figures_motion(all_tables, repetition_times, signals, output_dir):
 
 
 
-def display_motion_outliers(all_tables, repetition_times, output_dir):
-    # Loop over all files in the list
+def display_outliers(all_tables, repetition_times, output_dir):
     task_colors = {}
     tasks = set()
-    fig_all = go.Figure()
+    fig_all = go.Figure()  # Figure pour toutes les courbes
 
     for table in all_tables:
         file_info = extract_file_info(os.path.basename(table).split('.')[0])
         tasks.add(file_info.get('task', 'N/A'))
 
-
-    subject_data = {}
-
-    for table, repetition_time in zip(all_tables, repetition_times):
+    for task in tasks:
+        subject_data = {}
+        
+        for table, repetition_time in zip(all_tables, repetition_times):
             df = pd.read_csv(table, sep='\t')
             file_info = extract_file_info(os.path.basename(table).split('.')[0])
 
-            motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
-
-            
             subject_name = os.path.basename(table).split('_')[0]
             if subject_name not in subject_data:
                 subject_data[subject_name] = []
             
-            signal_values = df[motion_outliers]
+            motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+            df = df[motion_outliers]
+            outliers = df.sum(axis=1)
+            signal_values = outliers
             time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
 
             subject_data[subject_name].append((table, time_indices, signal_values))
 
-                
-    visibility_lists = []
-
-    for subject, data_list in subject_data.items():
+        visibility_lists = []
+        
+        for subject, data_list in subject_data.items():
             visibility = [False] * len(all_tables)
-            visibility_all = [False] * len(all_tables)  # Initialiser une nouvelle liste de visibilité pour fig_all
             
 
             for current_table, time_indices, signal_values in data_list:
@@ -401,7 +397,7 @@ def display_motion_outliers(all_tables, repetition_times, output_dir):
                 current_task_name = file_info.get('task')
                 current_run = os.path.basename(current_table).split('_')[3]
 
-                custom_legend = f"outlier of {current_subject_name} - {current_session} - {current_task_name} - {current_run}"
+                custom_legend = f"{current_subject_name} - {current_session} - {current_task_name} - {current_run}"
 
                 unique_task_count = len(tasks)
                 unique_colors = generate_divergent_colors(unique_task_count)
@@ -412,50 +408,69 @@ def display_motion_outliers(all_tables, repetition_times, output_dir):
                 color = task_colors.get(current_task_name) 
 
                 file_info = extract_file_info(os.path.basename(current_table).split('.')[0])
-        
-                fig_all.add_trace(go.Scatter(x=time_indices, y=signal_values, mode='lines', name=custom_legend, line=dict(color=color)))
 
+                filtered_indices = np.where(signal_values == 1)[0]
+                filtered_time_indices = time_indices[filtered_indices]
+                filtered_signal_values = signal_values[filtered_indices]
+
+                jitter_amount = 0.1
+                jitter = np.random.uniform(-jitter_amount, jitter_amount, size=len(filtered_time_indices))
+                jittered_signal_value = filtered_signal_values + jitter
+                fig_all.add_trace(go.Scatter(x=filtered_time_indices, y=jittered_signal_value, mode='markers', name=custom_legend, marker=dict(color=color)))
 
                 current_trace_index_all = len(fig_all.data) - 1
 
                 # Mise à jour de la visibilité pour fig_all
-                if current_trace_index_all >= len(visibility_all):
-                    extend_length = (current_trace_index_all - len(visibility_all) + 1)
-                    visibility_all.extend([False] * extend_length)
-                visibility_all[current_trace_index_all] = True
+                if current_trace_index_all >= len(visibility):
+                    extend_length = (current_trace_index_all - len(visibility) + 1)
+                    visibility.extend([False] * extend_length)
+                visibility[current_trace_index_all] = True
 
             visibility_lists.append(visibility)
 
-    fig_all.update_layout(
-    hoverlabel_namelength=-1,
-    title={
-        'text': f'{motion_outliers} for all tasks',
-        'y':0.95,
-        'x':0.5,
-        'xanchor': 'center',
-        'yanchor': 'top'},
-    title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
-    xaxis_title='Time (seconds)', 
-    yaxis_title=f'{motion_outliers}', 
-    autosize=True
-)
+        yaxis_title = outliers
+        fig_all.update_yaxes(range=[0.5, 1.5])
 
-    # Dropdown menu
-    dropdown_buttons_all = [dict(label="All subjects", method='update', args=[{'visible': [True]*len(fig_all.data)}, {'title': f'{motion_outliers} for All Subjects', 'showlegend': True}])]
-    
-    for i, (subject, _) in enumerate(subject_data.items()):
-        dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'{motion_outliers} for {subject} in all tasks', 'showlegend': True}]))
-    
-    fig_all.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-            
-        # Sauvegardez fig_all
-    fig_all_name = f"desc-outliers_for_all_tasks.html"
-    fig_all.write_html(os.path.join(output_dir, fig_all_name))
+
+        fig_all.update_layout(
+            hoverlabel_namelength=-1,
+            title={
+                'text': f'outliers for all tasks',
+                'y':0.95,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top'},
+            title_font=dict(size=22, color='rgb(107, 107, 107)', family="Georgia, serif"),
+            xaxis_title='Time (seconds)', 
+            yaxis_title=f'Outliers', 
+            autosize=True
+        )
+
+
+        # Dropdown menu
+
+        dropdown_buttons_all = [dict(label="All subjects", method='update', args=[{'visible': [True]*len(fig_all.data)}, {'title': f'outliers for All Subjects in all tasks', 'showlegend': True}])]
+
+        
+        for i, (subject, _) in enumerate(subject_data.items()):
+             dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'outliers for {subject} in all tasks', 'showlegend': True}]))
+             print(f"Longueur de visibility_all_lists: {len(visibility_lists)}")
+             print(f"Valeur de i: {i}")  
+
+        fig_all.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
+
         
 
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        # Sauvegardez fig_all
+    fig_all_name = f"desc-outliers_signal_for_all_tasks.html"
+    fig_all.write_html(os.path.join(output_dir, fig_all_name))
+    
+
+        
 
 def generate_report_with_plots(
     output_dir,

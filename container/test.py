@@ -3,7 +3,7 @@ import time
 
 start_time = time.time()
 
-from quality import extract_unique_tasks, display_motion_outliers
+from quality import extract_unique_tasks, display_outliers
 from quality import get_bids_data, generate_report_with_plots, generate_figure, generate_figures_motion
 import uuid
 import os
@@ -33,10 +33,12 @@ tasks = extract_unique_tasks(all_tables)
 
 all_tasks = []
 
-#display_motion_outliers(all_tables)
-display_motion_outliers(all_tables, repetition_times, reportlets_dir)
+
+display_outliers(all_tables, repetition_times, reportlets_dir)
+
 #global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
 #generate_figure_all(all_tables, repetition_times, 'global_signal', reportlets_dir)
+#generate_figure(all_tables, repetition_times, 'global_signal', reportlets_dir)
 # generate_figure(all_tables, repetition_times, 'global_signal', reportlets_dir)
 # generate_figure(all_tables, repetition_times, 'csf', reportlets_dir)
 # generate_figure(all_tables, repetition_times, 'white_matter', reportlets_dir)
