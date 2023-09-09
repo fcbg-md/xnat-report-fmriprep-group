@@ -34,7 +34,7 @@ tasks = extract_unique_tasks(all_tables)
 all_tasks = []
 
 
-display_outliers(all_tables, repetition_times, reportlets_dir)
+display_outliers(all_tables, repetition_times, reportlets_dir, 3, 5)
 
 #global_data, motion_outliers_list, repetition_time, signal, subject_data = read_and_preprocess_data(tasks, all_tables, repetition_times, "global_signal")
 #generate_figure_all(all_tables, repetition_times, 'global_signal', reportlets_dir)

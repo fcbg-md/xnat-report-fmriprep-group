@@ -356,7 +356,7 @@ def generate_figures_motion(all_tables, repetition_times, signals, output_dir):
 
 
 
-def display_outliers(all_tables, repetition_times, output_dir):
+def display_outliers(all_tables, repetition_times, output_dir, fd_threshold=0.5, dvars_threshold=1.5):
     task_colors = {}
     tasks = set()
     fig_all = go.Figure()  # Figure pour toutes les courbes
@@ -375,11 +375,18 @@ def display_outliers(all_tables, repetition_times, output_dir):
             subject_name = os.path.basename(table).split('_')[0]
             if subject_name not in subject_data:
                 subject_data[subject_name] = []
-            
-            motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
-            df = df[motion_outliers]
-            outliers = df.sum(axis=1)
-            signal_values = outliers
+
+            if fd_threshold != 0.5 or dvars_threshold != 1.5:
+                fd_col = 'framewise_displacement'
+                dvars_col = 'std_dvars'
+                outliers = np.where((df[fd_col] > fd_threshold) | (df[dvars_col] > dvars_threshold), 1, 0)
+                signal_values = outliers
+            else:
+                motion_outliers = [col for col in df.columns if 'motion_outlier' in col]
+                df = df[motion_outliers]
+                outliers = df.sum(axis=1)
+                signal_values = outliers
+
             time_indices = np.arange(0, len(signal_values) * repetition_time, repetition_time)
 
             subject_data[subject_name].append((table, time_indices, signal_values))
@@ -416,7 +423,7 @@ def display_outliers(all_tables, repetition_times, output_dir):
                 jitter_amount = 0.1
                 jitter = np.random.uniform(-jitter_amount, jitter_amount, size=len(filtered_time_indices))
                 jittered_signal_value = filtered_signal_values + jitter
-                fig_all.add_trace(go.Scatter(x=filtered_time_indices, y=jittered_signal_value, mode='markers', name=custom_legend, marker=dict(color=color)))
+                fig_all.add_trace(go.Scatter(x=filtered_time_indices, y=filtered_signal_values, mode='markers', name=custom_legend, marker=dict(color=color)))
 
                 current_trace_index_all = len(fig_all.data) - 1
 
@@ -455,8 +462,6 @@ def display_outliers(all_tables, repetition_times, output_dir):
         
         for i, (subject, _) in enumerate(subject_data.items()):
              dropdown_buttons_all.append(dict(label=subject, method='update', args=[{'visible': visibility_lists[i]}, {'title': f'outliers for {subject} in all tasks', 'showlegend': True}]))
-             print(f"Longueur de visibility_all_lists: {len(visibility_lists)}")
-             print(f"Valeur de i: {i}")  
 
         fig_all.update_layout(updatemenus=[dict(active=0, buttons=dropdown_buttons_all, direction="down", pad={"r": 10, "t": 10}, showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top")])
 
