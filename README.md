@@ -8,15 +8,6 @@ This project generates quality reports for pre-processed fMRI datasets following
 * test.py: An example script showing how to use the functions in quality.py.
 * bootstrap-fmriprep.yml: A YAML configuration file for report layout and style. It respects the template proposed by nireport, which you can find [here.](https://github.com/nipreps/nireports/blob/main/nireports/assembler/report.py)
 
-## Dependencies
-* pandas
-* matplotlib
-* plotly
-* uuid
-* os
-* pathlib
-import argparse
-
 ## File quality.py
 The quality.py file is the heart of this project. It contains several functions that facilitate the processing and analysis of fMRI data in compliance with BIDS standards. Here's an overview of the main functions and their uses:
 
