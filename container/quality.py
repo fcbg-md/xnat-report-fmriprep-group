@@ -2,14 +2,9 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
-from plotly.subplots import make_subplots
-#from scipy.signal import spectrogram
 from bids import BIDSLayout
 import json
-from nibabel.freesurfer.mghformat import load
 from nireports.assembler.report import Report
-import random
-
 
 def get_bids_data(data_path):
     """
@@ -119,7 +114,7 @@ def generate_divergent_colors(n):
     - The function uses the HSV color scheme available in Plotly Express as the base.
     - The step size for picking colors from the HSV scheme is adjusted based on the value of 'n' to ensure that colors are divergent.
     """
-    turbo_colors = px.colors.cyclical.HSV
+    turbo_colors = px.colors.qualitative.Plotly
     step = max(1, len(turbo_colors) // n)
     colors = [turbo_colors[i % len(turbo_colors)] for i in range(0, n * step, step)]
     return colors[:n]
