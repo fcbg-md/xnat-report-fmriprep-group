@@ -9,7 +9,7 @@ import uuid
 import os
 from pathlib import Path
 import argparse
-
+ 
 #data_path = "/mnt/extra/data/share/bids_fmriprep_10subj/"
 #output_dir="/home/axel/Test2/bids_fmriprep_10subj/report"
 
