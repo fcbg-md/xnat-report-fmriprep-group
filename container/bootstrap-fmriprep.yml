@@ -1,0 +1,209 @@
+# Copyright 2023 The NiPreps Developers <nipreps@gmail.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# We support and encourage derived works from this project, please read
+# about our expectations at
+#
+#     https://www.nipreps.org/community/licensing/
+#
+###########################################################################
+# Reports bootstrap file
+# ======================
+# This is a YAML-formatted file specifying how the NiReports assembler
+# will search for "reportlets" and compose them into a report file,
+# typically in HTML format.
+###########################################################################
+
+# packagename: fmirprep
+# title: 'Fmriprep group report'
+
+# sections:
+# # Add the "Summary" section at the beginning
+# - name: Summary
+#   reportlets:
+#   - bids: {datatype: figures, desc: summary, extension: [.html]}
+#     caption: |
+#       This section provides a brief overview of the key metrics and their significance in the context of the MRI analysis. Understanding these metrics is essential to interpret the overall quality and reliability of the results.
+#     subtitle: Key Metrics Overview
+
+# # Explanation for each metric in the "Basic confounds" section
+
+title: Visual fmriprep report for group
+sections:
+- name: Summary
+  reportlets:
+  - bids: {datatype: figures, desc: summary, extension: [.html]}
+    caption: |
+      This section provides a brief overview of the key metrics and their significance in the context of the MRI analysis. Understanding these metrics is essential to interpret the overall quality and reliability of the results.
+    subtitle: Key Metrics Overview
+    title: Visual fmriprep report by tasks
+- name: Basic confounds 
+  reportlets:
+  - bids: {datatype: figures, desc: allglobal, extension: [.html]}
+    caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
+    subtitle: Global signal for all tasks
+  - bids: {datatype: figures, desc: tasksglobal, extension: [.html]}
+    caption:
+    subtitle: Global signal for each tasks
+  - bids: {datatype: figures, desc: allcsf, extension: [.html]}
+    caption: This metric represents the average signal within the anatomically-derived eroded cerebrospinal fluid (CSF) mask. A stable signal here can help ensure that CSF fluctuations aren't confounding the neural signals of interest.
+    subtitle: CSF signal for all tasks
+  - bids: {datatype: figures, desc: taskscsf, extension: [.html]}
+    caption: 
+    subtitle: CSF signal for each tasks
+  - bids: {datatype: figures, desc: allwhite, extension: [.html]}
+    caption: The average signal within the anatomically-derived eroded white matter mask provides insights into the integrity and quality of white matter regions.
+    subtitle: White matter signal for all tasks
+  - bids: {datatype: figures, desc: taskswhite, extension: [.html]}
+    caption: 
+    subtitle: White matter signal for each tasks
+- name: Motion data
+  reportlets:
+  - bids: {datatype: figures, desc: allTranslation, extension: [.html]}
+    caption: the translation parameters for all tasks
+    subtitle: Translation parameters for all tasks
+  - bids: {datatype: figures, desc: tasksTranslation, extension: [.html]}
+    caption: 
+    subtitle: Translation parameters for each tasks
+  - bids: {datatype: figures, desc: allRotation, extension: [.html]}
+    caption: the rotation parameters for all tasks
+    subtitle: Rotation parameters for all tasks
+  - bids: {datatype: figures, desc: tasksRotation, extension: [.html]}
+    caption: 
+    subtitle: Rotation parameters for each tasks
+- name: Outlier detection
+  reportlets:
+  - bids: {datatype: figures, desc: allframewise, extension: [.html]}
+    caption: the framewise displacement for all tasks
+    subtitle: Framewise displacement for all tasks
+  - bids: {datatype: figures, desc: tasksframewise, extension: [.html]}
+    caption: 
+    subtitle: Framewise displacement for each tasks
+  - bids: {datatype: figures, desc: allstd, extension: [.html]}
+    caption: the standardized dvars for all tasks
+    subtitle: Standardized DVARS for all tasks
+  - bids: {datatype: figures, desc: tasksstd, extension: [.html]}
+    caption: 
+    subtitle: Standardized DVARS for each tasks
+  - bids: {datatype: figures, desc: alldvars, extension: [.html]}
+    caption: the dvars for all tasks
+    subtitle: DVARS for all tasks
+  - bids: {datatype: figures, desc: tasksdvars, extension: [.html]}
+    caption: 
+    subtitle: DVARS for each tasks
+  - bids: {datatype: figures, desc: allrmsd, extension: [.html]}
+    caption: the root mean square displacement for all tasks
+    subtitle:   Root mean square displacement for all tasks
+  - bids: {datatype: figures, desc: tasksrmsd, extension: [.html]}
+    caption: 
+    subtitle: Root mean square displacement for each tasks
+- name: Outliers 
+  reportlets:
+  - bids: {datatype: figures, desc: outliers, extension: [.html]}
+    caption: the outliers for all tasks
+    subtitle: All Outliers
+
+
+
+    
+# - name: Extended visual report
+#   reportlets:
+#   - bids: {datatype: figures, desc: mean}
+#     subtitle: Average signal through time
+#     caption: The average signal calculated across the last axis (time).
+#   - bids: {datatype: figures, desc: airmask}
+#     caption: The <em>hat</em>-mask calculated internally by MRIQC. Some metrics will use this
+#       mask, for instance, to find out artifacts and estimate the spread of gaussian noise
+#       added to the signal. This mask leaves out the air around the face to avoid measuring
+#       noise sourcing from the eyeballs and their movement.
+#     subtitle: '&laquo;Hat&raquo;-mask'
+#   - bids: {datatype: figures, desc: noisefit}
+#     caption: The noise fit internally estimated by MRIQC to calculate the QI<sub>1</sub> index
+#       proposed by <a href="https://doi.org/10.1002/mrm.21992" target="_blank">Mortamet et al. (2009)</a>.
+#     subtitle: Distribution of the noise within the <em>hat</em> mask
+#     style:
+#       max-width: 450px
+#   - bids: {datatype: figures, desc: artifacts}
+#     caption: Mask of artifactual intensities identified within the <em>hat</em>-mask.
+#     subtitle: Artifactual intensities on the background
+#   - bids: {datatype: figures, desc: brainmask}
+#     caption: Brain mask as internally extracted by MRIQC. Defects on the brainmask could
+#       indicate problematic aspects of the image quality-wise.
+#     subtitle: Brain extraction performance
+#   - bids: {datatype: figures, desc: head}
+#     caption: A mask of the head calculated internally by MRIQC.
+#     subtitle: Head mask
+#   - bids: {datatype: figures, desc: segmentation}
+#     caption: Brain tissue segmentation, as internally extracted by MRIQC.
+#       Defects on this segmentation, as well as noisy tissue labels could
+#       indicate problematic aspects of the image quality-wise.
+#     subtitle: Brain tissue segmentation
+#   - bids: {datatype: figures, desc: norm}
+#     caption: This panel shows a <em>quick-and-dirty</em> nonlinear registration into
+#       the <code>MNI152NLin2009cAsym</code> template accessed with
+#       <a href="https://templateflow.org/browse" target="_blank"><em>TemplateFlow</em></a>.
+#     subtitle: Spatial normalization of the anatomical image
+    # static: false
+
+
+# - name: Tasks
+#   nested: true
+#   reportlets:
+#   - metadata: "input"
+#   - bids: 
+#       datatype: figures
+#       desc: global
+#       task: reward
+#       extension: [.html]
+#     caption: The average signal within the brain mask indicates the mean intensity value within the brain region and can be used to assess the overall signal quality.
+#     subtitle: Global signal
+#     settings:
+#       folded: true
+#     caption: |
+#       The quantitative metrics are also used in the Freesurfer group report.
+#     title: AliceLoc
+#   - metadata: "ye"
+#     settings:
+#       # By default, only the first dictionary will be expanded.
+#       # If folded is true, all will be folded. If false all expanded.
+#       folded: true
+#       # If an ID is not provided, one should be generated automatically
+#       id: 'fk'
+#     caption: |
+#       The quantitative metrics are also used in the Freesurfer group report.
+#     title: Test3
+
+
+- name: About
+  nested: true
+  reportlets:
+  - custom: errors
+    path: '{reportlets_dir}/{run_uuid}'
+    captions: <em>FMRIPREP</em> may have recorded failure conditions.
+    title: Errors
+  - metadata: "input"
+    settings:
+      # By default, only the first dictionary will be expanded.
+      # If folded is true, all will be folded. If false all expanded.
+      folded: true
+      # If an ID is not provided, one should be generated automatically
+      id: 'fs-metadata'
+    caption: |
+      The quantitative metrics are also used in the Freesurfer group report.
+    title: Metrics and provenance information
+
+# Rating widget
+plugins:
+- module: nireports.assembler
+  path: data/rating-widget/bootstrap.yml
