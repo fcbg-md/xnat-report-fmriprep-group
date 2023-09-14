@@ -71,6 +71,8 @@ report \
 python3 /app/test.py --fd_threshold 0.5 --dvars_threshold 1.5 /in/
 ```
 
+you can also use the image directly from the dockerhub depo [here](https://hub.docker.com/repository/docker/cavatrank/fmriprep-group-report/general)
+
 
 
 ## Parameters
